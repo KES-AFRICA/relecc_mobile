@@ -1,0 +1,11 @@
+{
+  "@@locale": "en",
+
+  "app_title": "RELEC CUD EN",
+  "okay": "Okay",
+  "loadingDialog_content": "Loading.....",
+  "login_email_not_good": "Email is incorrect",
+  "login_password": "Password",
+  "login_login": "Connexion",
+  "login_email": "Email"
+}

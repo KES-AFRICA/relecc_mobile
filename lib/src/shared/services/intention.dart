@@ -1,0 +1,4 @@
+class Intention{
+
+  Intention._();
+}
