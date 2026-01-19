@@ -47,7 +47,7 @@ class EquipmentRepository {
 
 Future<ResponseModel<List<StoreStreetLightResponseComplet>>> getAllStreetlights() async {
   final token = await _getAuthToken();
-  final url = Uri.encodeFull('$API_ENDPOINT/equipments/get-all-streetlights');
+  final url = Uri.encodeFull('$API_ENDPOINT/equipments/get-all-streetlights-for-map');
 
   final stopwatch = Stopwatch()..start();
 
@@ -164,7 +164,7 @@ Future<ResponseModel<List<StoreStreetLightResponseComplet>>> getAllStreetlights(
 
 Future<ResponseModel<List<MeterResponse>>> getAllMeters() async {
   final token = await _getAuthToken();
-  final url = Uri.encodeFull('$API_ENDPOINT/equipments/get-all-meters');
+  final url = Uri.encodeFull('$API_ENDPOINT/equipments/get-all-meters-for-map');
 
   final stopwatch = Stopwatch()..start();
 
@@ -217,7 +217,7 @@ Future<ResponseModel<List<MeterResponse>>> getAllMeters() async {
 }
 Future<ResponseModel<List<CabinetResponse>>> getAllCabinets() async {
   final token = await _getAuthToken();
-  final url = Uri.encodeFull('$API_ENDPOINT/equipments/get-all-cabinets');
+  final url = Uri.encodeFull('$API_ENDPOINT/equipments/get-all-cabinets-for-map');
 
   final stopwatch = Stopwatch()..start();
 

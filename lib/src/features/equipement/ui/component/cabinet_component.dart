@@ -14,7 +14,7 @@ class CabinetWidget extends StatelessWidget {
   final CabinetResponse? cabinet;
   final MissionResponse mission;
   final String? source;
-   final String? networkLabel;
+  final String? networkLabel;
 
   const CabinetWidget({
     super.key,
@@ -42,7 +42,7 @@ class CabinetWidget extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: MediaQuery.of(context).size.height * 0.6,
+            expandedHeight: MediaQuery.of(context).size.height * 0.9,
             floating: false,
             pinned: true,
             leading: IconButton(
@@ -68,25 +68,26 @@ class CabinetWidget extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   CachedNetworkImage(
-              imageUrl: cabinet!.photo??'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: Colors.grey.shade200,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Theme.of(context).primaryColor,
+                    imageUrl: cabinet!.photo ??
+                        'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey.shade200,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey.shade200,
+                      child: Icon(
+                        Icons.electric_meter,
+                        color: Colors.grey.shade400,
+                        size: 60,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey.shade200,
-                child: Icon(
-                  Icons.electric_meter,
-                  color: Colors.grey.shade400,
-                  size: 60,
-                ),
-              ),
-            ),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -103,68 +104,73 @@ class CabinetWidget extends StatelessWidget {
               ),
             ),
             actions: [
-             // if (source == SourceProvider.MaintenanceProvider)
-                Row(
-  children: [
-    // Bouton Edit
-    Container(
-      decoration: BoxDecoration(
-        color: context.colorScheme.primary,
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        onPressed: () {},
-        icon: const Icon(Icons.edit, color: Colors.white),
-      ),
-    ),
-    const SizedBox(width: 8), // Espacement entre les boutons
-    
-    // Bouton Add
-    Container(
-      decoration: BoxDecoration(
-        color: context.colorScheme.primary,
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        onPressed: () {
-          if (cabinet != null) {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              barrierColor: Colors.black26,
-              backgroundColor: Colors.white,
-              elevation: 10,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              builder: (BuildContext context) {
-                final screenHeight = MediaQuery.of(context).size.height;
-                return SizedBox(
-                  height: screenHeight * 0.25,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).viewInsets.bottom,
+              // if (source == SourceProvider.MaintenanceProvider)
+              Row(
+                children: [
+                  // Bouton Edit
+                  // Container(
+                  //   decoration: BoxDecoration(
+                  //     color: context.colorScheme.primary,
+                  //     shape: BoxShape.circle,
+                  //   ),
+                  //   child: IconButton(
+                  //     onPressed: () {},
+                  //     icon: const Icon(Icons.edit, color: Colors.white),
+                  //   ),
+                  // ),
+                  // const SizedBox(width: 8), // Espacement entre les boutons
+
+                  // Bouton Add
+                  Container(
+                    decoration: BoxDecoration(
+                      color: context.colorScheme.primary,
+                      shape: BoxShape.circle,
                     ),
-                    child: EquipmentTypeModal(
-                      mission: mission,
-                      cabinet: cabinet,
-                      isMeterVisible: false,
-                      isCabinetVisible: false,
-                      source: SourceProvider.EquipmentDetailProvider,
+                    child: IconButton(
+                      onPressed: () {
+                        if (cabinet != null) {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            barrierColor: Colors.black26,
+                            backgroundColor: Colors.white,
+                            elevation: 10,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(20)),
+                            ),
+                            builder: (BuildContext context) {
+                              final screenHeight =
+                                  MediaQuery.of(context).size.height;
+                              return SizedBox(
+                                height: screenHeight * 0.25,
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: MediaQuery.of(context)
+                                        .viewInsets
+                                        .bottom,
+                                  ),
+                                  child: EquipmentTypeModal(
+                                    mission: mission,
+                                    cabinet: cabinet,
+                                    isMeterVisible: false,
+                                    isCabinetVisible: false,
+                                    source:
+                                        SourceProvider.EquipmentDetailProvider,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.add, color: Colors.white),
                     ),
                   ),
-                );
-              },
-            );
-          }
-        },
-        icon: const Icon(Icons.add, color: Colors.white),
-      ),
-    ),
-  
-  const SizedBox(width: 4),
-  ],
-)
+
+                  const SizedBox(width: 4),
+                ],
+              )
             ],
           ),
           SliverToBoxAdapter(
@@ -188,12 +194,6 @@ class CabinetWidget extends StatelessWidget {
                             title: "Nom de l'armoire :",
                             value: cabinet?.name ?? 'Non renseigné',
                             valueStyle: highlightedTextStyle,
-                          ),
-                          const Divider(height: 8, thickness: 0.5),
-                          CustomListTitle(
-                            title: "Nombre de lampadaires :",
-                            value: cabinet?.lampCount?.toString() ?? '0',
-                            valueStyle: defaultTextStyle,
                           ),
                           const Divider(height: 8, thickness: 0.5),
                           CustomListTitle(
@@ -304,154 +304,157 @@ class CabinetWidget extends StatelessWidget {
     );
   }
 
-Widget _buildEquipmentSectionPortrait(
-  BuildContext context, {
-  required String title,
-  //required String imageAsset,
-  required TextStyle defaultTextStyle,
-  required TextStyle highlightedTextStyle,
-}) {
-  final isTablet = MediaQuery.of(context).size.width >= 600;
+  Widget _buildEquipmentSectionPortrait(
+    BuildContext context, {
+    required String title,
+    //required String imageAsset,
+    required TextStyle defaultTextStyle,
+    required TextStyle highlightedTextStyle,
+  }) {
+    final isTablet = MediaQuery.of(context).size.width >= 600;
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: context.colorScheme.primary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: context.colorScheme.primary,
+          ),
         ),
-      ),
-      const SizedBox(height: 12),
-
-      isTablet
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image à gauche
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  // child: Image.asset(
-                  //   imageAsset,
-                  //   height: 200,
-                  //   width: 120,
-                  //   fit: BoxFit.cover,
-                  // ),
-                  child: CachedNetworkImage(
-              imageUrl: cabinet!.meter!.photo??'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: Colors.grey.shade200,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Theme.of(context).primaryColor,
+        const SizedBox(height: 12),
+        isTablet
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image à gauche
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    // child: Image.asset(
+                    //   imageAsset,
+                    //   height: 200,
+                    //   width: 120,
+                    //   fit: BoxFit.cover,
+                    // ),
+                    child: CachedNetworkImage(
+                      imageUrl: cabinet!.meter!.photo ??
+                          'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade200,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey.shade200,
+                        child: Icon(
+                          Icons.electric_meter,
+                          color: Colors.grey.shade400,
+                          size: 60,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey.shade200,
-                child: Icon(
-                  Icons.electric_meter,
-                  color: Colors.grey.shade400,
-                  size: 60,
-                ),
-              ),
-            ),
-                ),
-                const SizedBox(width: 12),
-                // Infos à droite
-                Expanded(child: _buildInfoCardSection(context, defaultTextStyle, highlightedTextStyle)),
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image en haut
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                   child: CachedNetworkImage(
-              imageUrl: cabinet!.meter!.photo??'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: Colors.grey.shade200,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Theme.of(context).primaryColor,
+                  const SizedBox(width: 12),
+                  // Infos à droite
+                  Expanded(
+                      child: _buildInfoCardSection(
+                          context, defaultTextStyle, highlightedTextStyle)),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image en haut
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(
+                      imageUrl: cabinet!.meter!.photo ??
+                          'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade200,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey.shade200,
+                        child: Icon(
+                          Icons.electric_meter,
+                          color: Colors.grey.shade400,
+                          size: 60,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  // Infos en bas
+                  _buildInfoCardSection(
+                      context, defaultTextStyle, highlightedTextStyle),
+                ],
               ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey.shade200,
-                child: Icon(
-                  Icons.electric_meter,
-                  color: Colors.grey.shade400,
-                  size: 60,
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: _buildMapButton(
+            context,
+            onPressed: () {
+              context.router.push(
+                MapRoute(
+                  meter: cabinet?.meter,
+                  source: SourceProvider.EquipmentDetailProvider,
                 ),
-              ),
-            ),
-                ),
-                const SizedBox(height: 12),
-                // Infos en bas
-                _buildInfoCardSection(context, defaultTextStyle, highlightedTextStyle),
-              ],
-            ),
-
-      const SizedBox(height: 16),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: _buildMapButton(
-          context,
-          onPressed: () {
-            context.router.push(
-              MapRoute(
-                meter: cabinet?.meter,
-                source: SourceProvider.EquipmentDetailProvider,
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-      ),
-      const SizedBox(height: 40),
-    ],
-  );
-}
+        const SizedBox(height: 40),
+      ],
+    );
+  }
 
-Widget _buildInfoCardSection(
-  BuildContext context,
-  TextStyle defaultTextStyle,
-  TextStyle highlightedTextStyle,
-) {
-  return _buildInfoCard(
-    context,
-    children: [
-      CustomListTitle(
-        title: "Référence :",
-        value: cabinet?.meter?.name ?? 'Non renseigné',
-        valueStyle: highlightedTextStyle,
-      ),
-      const Divider(height: 8, thickness: 0.5),
-      CustomListTitle(
-        title: "Numéro de série :",
-        value: cabinet?.meter?.number ?? 'Non renseigné',
-        valueStyle: defaultTextStyle,
-      ),
-      const Divider(height: 8, thickness: 0.5),
-      CustomListTitle(
-        title: "Marque :",
-        value: cabinet?.meter?.brand ?? 'Non renseigné',
-        valueStyle: defaultTextStyle,
-      ),
-      const Divider(height: 8, thickness: 0.5),
-      CustomListTitle(
-        title: "Modèle :",
-        value: cabinet?.meter?.model ?? 'Non renseigné',
-        valueStyle: defaultTextStyle,
-      ),
-    ],
-  );
-}
+  Widget _buildInfoCardSection(
+    BuildContext context,
+    TextStyle defaultTextStyle,
+    TextStyle highlightedTextStyle,
+  ) {
+    return _buildInfoCard(
+      context,
+      children: [
+        CustomListTitle(
+          title: "Référence :",
+          value: cabinet?.meter?.name ?? 'Non renseigné',
+          valueStyle: highlightedTextStyle,
+        ),
+        const Divider(height: 8, thickness: 0.5),
+        CustomListTitle(
+          title: "Numéro de série :",
+          value: cabinet?.meter?.number ?? 'Non renseigné',
+          valueStyle: defaultTextStyle,
+        ),
+        const Divider(height: 8, thickness: 0.5),
+        CustomListTitle(
+          title: "Marque :",
+          value: cabinet?.meter?.brand ?? 'Non renseigné',
+          valueStyle: defaultTextStyle,
+        ),
+        const Divider(height: 8, thickness: 0.5),
+        CustomListTitle(
+          title: "Modèle :",
+          value: cabinet?.meter?.model ?? 'Non renseigné',
+          valueStyle: defaultTextStyle,
+        ),
+      ],
+    );
+  }
 
   Widget _buildInfoCard(BuildContext context,
       {required List<Widget> children}) {

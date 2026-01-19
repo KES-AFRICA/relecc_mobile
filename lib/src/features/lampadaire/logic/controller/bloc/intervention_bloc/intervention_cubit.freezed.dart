@@ -97,9 +97,6 @@ class _$InterventionStateCopyWithImpl<$Res, $Val extends InterventionState>
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
-
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -119,9 +116,6 @@ class __$$InterventionStateInitialImplCopyWithImpl<$Res>
       _$InterventionStateInitialImpl _value,
       $Res Function(_$InterventionStateInitialImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -253,9 +247,6 @@ class __$$InterventionStateLoadingImplCopyWithImpl<$Res>
       _$InterventionStateLoadingImpl _value,
       $Res Function(_$InterventionStateLoadingImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -389,8 +380,6 @@ class __$$InterventionStateSucessImplCopyWithImpl<$Res>
       $Res Function(_$InterventionStateSucessImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -430,9 +419,7 @@ class _$InterventionStateSucessImpl implements _InterventionStateSucess {
   @override
   int get hashCode => Object.hash(runtimeType, response);
 
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$InterventionStateSucessImplCopyWith<_$InterventionStateSucessImpl>
@@ -533,10 +520,7 @@ abstract class _InterventionStateSucess implements InterventionState {
       _$InterventionStateSucessImpl;
 
   ResponseModel<StreetLightInformation> get response;
-
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$InterventionStateSucessImplCopyWith<_$InterventionStateSucessImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
@@ -561,8 +545,6 @@ class __$$InterventionStateStoreSucessImplCopyWithImpl<$Res>
       $Res Function(_$InterventionStateStoreSucessImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -603,9 +585,7 @@ class _$InterventionStateStoreSucessImpl
   @override
   int get hashCode => Object.hash(runtimeType, response);
 
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$InterventionStateStoreSucessImplCopyWith<
@@ -707,10 +687,7 @@ abstract class _InterventionStateStoreSucess implements InterventionState {
       _$InterventionStateStoreSucessImpl;
 
   ResponseModel<dynamic> get response;
-
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$InterventionStateStoreSucessImplCopyWith<
           _$InterventionStateStoreSucessImpl>
       get copyWith => throw _privateConstructorUsedError;
@@ -733,8 +710,6 @@ class __$$UpdateSuccessImplCopyWithImpl<$Res>
       _$UpdateSuccessImpl _value, $Res Function(_$UpdateSuccessImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -774,9 +749,7 @@ class _$UpdateSuccessImpl implements _UpdateSuccess {
   @override
   int get hashCode => Object.hash(runtimeType, response);
 
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$UpdateSuccessImplCopyWith<_$UpdateSuccessImpl> get copyWith =>
@@ -875,10 +848,7 @@ abstract class _UpdateSuccess implements InterventionState {
       _$UpdateSuccessImpl;
 
   ResponseModel<dynamic> get response;
-
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$UpdateSuccessImplCopyWith<_$UpdateSuccessImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -902,8 +872,6 @@ class __$$InterventionStateFailedImplCopyWithImpl<$Res>
       $Res Function(_$InterventionStateFailedImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -942,9 +910,7 @@ class _$InterventionStateFailedImpl implements _InterventionStateFailed {
   @override
   int get hashCode => Object.hash(runtimeType, error);
 
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$InterventionStateFailedImplCopyWith<_$InterventionStateFailedImpl>
@@ -1044,10 +1010,7 @@ abstract class _InterventionStateFailed implements InterventionState {
       _$InterventionStateFailedImpl;
 
   String get error;
-
-  /// Create a copy of InterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$InterventionStateFailedImplCopyWith<_$InterventionStateFailedImpl>
       get copyWith => throw _privateConstructorUsedError;
 }

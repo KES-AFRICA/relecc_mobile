@@ -13,6 +13,8 @@ import 'package:sopaki_app/src/features/equipement/logic/model/equipment.model.d
 import 'package:sopaki_app/src/features/lampadaire/logic/model/street_light.model.dart';
 import 'package:sopaki_app/src/features/login/logic/local_storage/model/login_local_storage.model.dart';
 import 'package:sopaki_app/src/features/mission/logic/model/mission.model.dart';
+import 'package:sopaki_app/src/features/network/logic/model/network_analysis_response.dart';
+import 'package:sopaki_app/src/features/network/logic/model/network_filter_options_response.dart';
 import 'package:sopaki_app/src/shared/locator.dart';
 import 'package:sopaki_app/src/shared/model/common_model/common.model.dart';
 import 'package:sopaki_app/src/shared/model/roles/role.model.dart';
@@ -71,6 +73,22 @@ class AppInitializer {
     Hive.registerAdapter(MeterAdapter());
     Hive.registerAdapter(MeterActionAdapter());
     Hive.registerAdapter(MeterResponseAdapter());
+
+      // Ajoutez ces typeIds pour Network Analysis
+    Hive.registerAdapter(NetworkAnalysisResponseAdapter());
+    Hive.registerAdapter(NetworkAnalysisDataAdapter());
+    Hive.registerAdapter(NetworkAnalysisAdapter());
+    Hive.registerAdapter(TypeDistributionAdapter());
+    Hive.registerAdapter(NetworkStatisticsAdapter());
+    Hive.registerAdapter(NetworkTypeStatsAdapter());
+    Hive.registerAdapter(MunicipalityStatsAdapter());
+    Hive.registerAdapter(CreationStatsAdapter());
+    Hive.registerAdapter(NetworkMetaAdapter());
+    
+    // Pour les filtres d'options
+    Hive.registerAdapter(NetworkFilterOptionsResponseAdapter());
+    Hive.registerAdapter(FilterOptionsDataAdapter());
+    Hive.registerAdapter(FilterOptionAdapter());
 
     // Ouvre une boîte Hive pour stocker les données hors ligne
     await Hive.openBox('offline_relec_data');

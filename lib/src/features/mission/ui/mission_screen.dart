@@ -47,20 +47,26 @@ class _MissionScreenState extends State<MissionScreen> {
       body: Column(
         children: [
           _buildFilterSection(),
-          Expanded(
-            child: BlocBuilder<MissionCubit, MissionState>(
-              builder: (context, state) {
-                return state.when(
-                  initial: () => _buildLoading(),
-                  loading: () => _buildLoading(),
-                  success: (response) => _buildMissionList(response),
-                  successEquipment: (_) => _buildLoading(),
-                  successEquipmentMaintenance: (_) => _buildLoading(),
-                  failure: (error) => _buildError(error),
-                );
-              },
-            ),
+         Expanded(
+          child: BlocBuilder<MissionCubit, MissionState>(
+            builder: (context, state) {
+              return state.when(
+                initial: () => _buildLoading(),
+                loading: () => _buildLoading(),
+                success: (response) => _buildMissionList(response),
+                successEquipment: (_) => _buildLoading(),
+                successEquipmentMaintenance: (_) => _buildLoading(),
+                successNetworkAnalysis: (_) => _buildLoading(),
+                successNetworkFilterOptions: (_) => _buildLoading(),
+                successNetworkDetails: (_) => _buildLoading(),
+                successNetworkQuickStats: (_) => _buildLoading(),
+                successNetworkExport: (_) => _buildLoading(),
+                failure: (error) => _buildError(error),
+              );
+            },
           ),
+        ),
+          const SizedBox(height: 20),
         ],
       ),
     );

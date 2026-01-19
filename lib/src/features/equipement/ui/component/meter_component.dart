@@ -42,7 +42,7 @@ class MeterComponent extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: MediaQuery.of(context).size.height * 0.6,
+            expandedHeight: MediaQuery.of(context).size.height * 0.9,
             floating: false,
             pinned: true,
             leading: IconButton(

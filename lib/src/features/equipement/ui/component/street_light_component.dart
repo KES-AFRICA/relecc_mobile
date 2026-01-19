@@ -41,15 +41,12 @@ class _StreetLightComponentState extends State<StreetLightComponent> {
       color: Colors.black,
     );
 
-
-    
-
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: MediaQuery.of(context).size.height * 0.6,
+            expandedHeight: MediaQuery.of(context).size.height * 0.9,
             floating: false,
             pinned: true,
             leading: IconButton(
@@ -72,128 +69,132 @@ class _StreetLightComponentState extends State<StreetLightComponent> {
                 ),
               ),
               // Remplacer cette partie dans le FlexibleSpaceBar
-background: Stack(
-  fit: StackFit.expand,
-  children: [
-    CachedNetworkImage(
-            imageUrl: widget.streetLight!.photo??'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              color: Colors.grey.shade200,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).primaryColor,
-                ),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: widget.streetLight!.photo ??
+                        'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey.shade200,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey.shade200,
+                      child: Icon(
+                        Icons.broken_image,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.3),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            errorWidget: (context, url, error) => Container(
-              color: Colors.grey.shade200,
-              child: Icon(
-                Icons.broken_image,
-                color: Colors.grey.shade400,
-              ),
-            ),
-          ),
-
-    Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.transparent,
-            Colors.black.withOpacity(0.3),
-          ],
-        ),
-      ),
-    ),
-  ],
-),
             ),
             actions: [
               //if (widget.source == SourceProvider.MaintenanceProvider)
-               Row(
-  children: [
-    // Bouton d'édition
-    Container(
-      decoration: BoxDecoration(
-        color: context.colorScheme.primary,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: IconButton(
-        iconSize: 24,
-        padding: EdgeInsets.zero,
-        onPressed: () {
-          context.router.push(
-            QrcodeRoute(
-              mission: widget.mission,
-              source: SourceProvider.MaintenanceProvider,
-              intention: "update",
-              existingStreetLight: widget.streetLight,
-            ),
-          );
-        },
-        icon: const Icon(Icons.edit, color: Colors.white),
-      ),
-    ),
+              Row(
+                children: [
+                  // Bouton d'édition
+                  // Container(
+                  //   decoration: BoxDecoration(
+                  //     color: context.colorScheme.primary,
+                  //     shape: BoxShape.circle,
+                  //     boxShadow: [
+                  //       BoxShadow(
+                  //         color: Colors.black.withOpacity(0.2),
+                  //         blurRadius: 4,
+                  //         offset: const Offset(0, 2),
+                  //       ),
+                  //     ],
+                  //   ),
+                  //   child: IconButton(
+                  //     iconSize: 24,
+                  //     padding: EdgeInsets.zero,
+                  //     onPressed: () {
+                  //       context.router.push(
+                  //         QrcodeRoute(
+                  //           mission: widget.mission,
+                  //           source: SourceProvider.MaintenanceProvider,
+                  //           intention: "update",
+                  //           existingStreetLight: widget.streetLight,
+                  //         ),
+                  //       );
+                  //     },
+                  //     icon: const Icon(Icons.edit, color: Colors.white),
+                  //   ),
+                  // ),
 
-    if (widget.mission != null) ...[
-      const SizedBox(width: 8), // Espacement entre les boutons
-      
-      // Bouton d'ajout
-      Container(
-        decoration: BoxDecoration(
-          color: context.colorScheme.primary,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: IconButton(
-          iconSize: 24,
-          padding: EdgeInsets.zero,
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              barrierColor: Colors.black26,
-              backgroundColor: Colors.white,
-              elevation: 10,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              builder: (BuildContext context) {
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: EquipmentTypeModal(
-                    mission: widget.mission!,
-                    isMeterVisible: false,
-                    source: SourceProvider.EquipmentDetailProvider,
-                  ),
-                );
-              },
-            );
-          },
-          icon: const Icon(Icons.add, color: Colors.white),
-        ),
-      ),
-      const SizedBox(width: 4),
-    ],
-  ],
-)],
+                  if (widget.mission != null) ...[
+                    const SizedBox(width: 8), // Espacement entre les boutons
+
+                    // Bouton d'ajout
+                    Container(
+                      decoration: BoxDecoration(
+                        color: context.colorScheme.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        iconSize: 24,
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            barrierColor: Colors.black26,
+                            backgroundColor: Colors.white,
+                            elevation: 10,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(20)),
+                            ),
+                            builder: (BuildContext context) {
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      MediaQuery.of(context).viewInsets.bottom,
+                                ),
+                                child: EquipmentTypeModal(
+                                  mission: widget.mission!,
+                                  isMeterVisible: false,
+                                  source:
+                                      SourceProvider.EquipmentDetailProvider,
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        icon: const Icon(Icons.add, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                ],
+              )
+            ],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -230,13 +231,15 @@ background: Stack(
                           const Divider(height: 8, thickness: 0.5),
                           CustomListTitle(
                             title: "Nombre de lampes :",
-                            value: widget.streetLight?.lampCount?.toString() ?? '0',
+                            value: widget.streetLight?.lampCount?.toString() ??
+                                '0',
                             valueStyle: defaultTextStyle,
                           ),
                           const Divider(height: 8, thickness: 0.5),
                           CustomListTitle(
                             title: "Localisation :",
-                            value: widget.streetLight?.street?.name ?? 'Non renseigné',
+                            value: widget.streetLight?.street?.name ??
+                                'Non renseigné',
                             valueStyle: defaultTextStyle,
                           ),
                           const Divider(height: 8, thickness: 0.5),
@@ -277,8 +280,8 @@ background: Stack(
                           const Divider(height: 8, thickness: 0.5),
                           CustomListTitle(
                             title: "Type de réseau :",
-                            value:
-                                widget.streetLight?.network?.name ?? 'Non renseigné',
+                            value: widget.streetLight?.network?.name ??
+                                'Non renseigné',
                             valueStyle: defaultTextStyle,
                           ),
                           const Divider(height: 8, thickness: 0.5),
@@ -302,7 +305,9 @@ background: Stack(
                           // ),
                           CustomListTitle(
                             title: "Allumé le jour :",
-                            value: widget.streetLight?.isOnDay == 1 ? "oui": "non",
+                            value: widget.streetLight?.isOnDay == 1
+                                ? "oui"
+                                : "non",
                             valueStyle: defaultTextStyle,
                           ),
                           const Divider(height: 8, thickness: 0.5),
@@ -346,8 +351,10 @@ background: Stack(
                       title: "Lampes associées",
                       defaultTextStyle: defaultTextStyle,
                       highlightedTextStyle: highlightedTextStyle,
-                      children:
-                          widget.streetLight!.lamps!.asMap().entries.map((entry) {
+                      children: widget.streetLight!.lamps!
+                          .asMap()
+                          .entries
+                          .map((entry) {
                         final index = entry.key + 1;
                         final lamp = entry.value;
 
@@ -366,10 +373,10 @@ background: Stack(
                               ),
                               const Divider(height: 8, thickness: 0.5),
                               CustomListTitle(
-                                  title: "Type de lampe :",
-                                  value: lamp.lamp_type ?? 'Non renseigné',
-                                  valueStyle: defaultTextStyle,
-                                ),
+                                title: "Type de lampe :",
+                                value: lamp.lamp_type ?? 'Non renseigné',
+                                valueStyle: defaultTextStyle,
+                              ),
                               const Divider(height: 8, thickness: 0.5),
                               CustomListTitle(
                                 title: "Puissance :",
@@ -379,10 +386,10 @@ background: Stack(
                               ),
                               const Divider(height: 8, thickness: 0.5),
                               CustomListTitle(
-                                  title: "Couleur :",
-                                  value: lamp.lamp_color ?? 'Non renseigné',
-                                  valueStyle: defaultTextStyle,
-                                ),
+                                title: "Couleur :",
+                                value: lamp.lamp_color ?? 'Non renseigné',
+                                valueStyle: defaultTextStyle,
+                              ),
                               const Divider(height: 8, thickness: 0.5),
                               CustomListTitle(
                                 title: "Présente :",
@@ -437,10 +444,6 @@ background: Stack(
     );
   }
 
-   
-
-
-
   Widget _buildEquipmentSection(
     BuildContext context, {
     required String title,
@@ -482,27 +485,28 @@ background: Stack(
       //   fit: BoxFit.cover,
       // ),
       child: CachedNetworkImage(
-            imageUrl: widget.streetLight!.cabinet!.photo ??'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
-            height: 200,
-            width: isTablet ? 120 : double.infinity,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              color: Colors.grey.shade200,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-            ),
-            errorWidget: (context, url, error) => Container(
-              color: Colors.grey.shade200,
-              child: Icon(
-                Icons.warehouse,
-                color: Colors.grey.shade400,
-                size: 40,
-              ),
+        imageUrl: widget.streetLight!.cabinet!.photo ??
+            'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
+        height: 200,
+        width: isTablet ? 120 : double.infinity,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: Colors.grey.shade200,
+          child: Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).primaryColor,
             ),
           ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          color: Colors.grey.shade200,
+          child: Icon(
+            Icons.warehouse,
+            color: Colors.grey.shade400,
+            size: 40,
+          ),
+        ),
+      ),
     );
 
     final infoCard = _buildInfoCard(
@@ -520,38 +524,38 @@ background: Stack(
           valueStyle: defaultTextStyle,
         ),
         const Divider(height: 8, thickness: 0.5),
-      //   CustomListTitle(
-      //     title: "Localisation :",
-      //     value: streetLight?.cabinet?.street?.name ?? 'Non renseigné',
-      //     valueStyle: defaultTextStyle,
-      //   ),
-      //   const Divider(height: 8, thickness: 0.5),
-      //   CustomListTitle(
-      //     title: "Commune :",
-      //     value: streetLight?.cabinet?.municipality?.name ?? 'Non renseigné',
-      //     valueStyle: defaultTextStyle,
-      //   ),
-      //   const Divider(height: 8, thickness: 0.5),
-      //   ListTile(
-      //     contentPadding: EdgeInsets.zero,
-      //     title: const Text(
-      //       "État de fonctionnement :",
-      //       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-      //     ),
-      //     trailing: Switch(
-      //       value: streetLight?.cabinet?.isFunctional == 1,
-      //       activeColor: _getStatusColor(streetLight?.cabinet?.isFunctional),
-      //       inactiveThumbColor: _getStatusColor(
-      //           streetLight?.cabinet?.isFunctional,
-      //           active: false),
-      //       inactiveTrackColor: _getStatusColor(
-      //               streetLight?.cabinet?.isFunctional,
-      //               active: false)
-      //           ?.withOpacity(0.2),
-      //       onChanged: null,
-      //     ),
-      //   ),
-      // 
+        //   CustomListTitle(
+        //     title: "Localisation :",
+        //     value: streetLight?.cabinet?.street?.name ?? 'Non renseigné',
+        //     valueStyle: defaultTextStyle,
+        //   ),
+        //   const Divider(height: 8, thickness: 0.5),
+        //   CustomListTitle(
+        //     title: "Commune :",
+        //     value: streetLight?.cabinet?.municipality?.name ?? 'Non renseigné',
+        //     valueStyle: defaultTextStyle,
+        //   ),
+        //   const Divider(height: 8, thickness: 0.5),
+        //   ListTile(
+        //     contentPadding: EdgeInsets.zero,
+        //     title: const Text(
+        //       "État de fonctionnement :",
+        //       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        //     ),
+        //     trailing: Switch(
+        //       value: streetLight?.cabinet?.isFunctional == 1,
+        //       activeColor: _getStatusColor(streetLight?.cabinet?.isFunctional),
+        //       inactiveThumbColor: _getStatusColor(
+        //           streetLight?.cabinet?.isFunctional,
+        //           active: false),
+        //       inactiveTrackColor: _getStatusColor(
+        //               streetLight?.cabinet?.isFunctional,
+        //               active: false)
+        //           ?.withOpacity(0.2),
+        //       onChanged: null,
+        //     ),
+        //   ),
+        //
       ],
     );
 

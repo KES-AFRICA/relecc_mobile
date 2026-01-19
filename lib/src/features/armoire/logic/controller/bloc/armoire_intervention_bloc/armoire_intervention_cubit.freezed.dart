@@ -94,9 +94,6 @@ class _$ArmoireInterventionStateCopyWithImpl<$Res,
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
-
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -116,9 +113,6 @@ class __$$ArmoireInterventionStateInitialImplCopyWithImpl<$Res>
       _$ArmoireInterventionStateInitialImpl _value,
       $Res Function(_$ArmoireInterventionStateInitialImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -249,9 +243,6 @@ class __$$ArmoireInterventionStateLoadingImplCopyWithImpl<$Res>
       _$ArmoireInterventionStateLoadingImpl _value,
       $Res Function(_$ArmoireInterventionStateLoadingImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -385,8 +376,6 @@ class __$$ArmoireInterventionStateSucessImplCopyWithImpl<$Res>
       $Res Function(_$ArmoireInterventionStateSucessImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -427,9 +416,7 @@ class _$ArmoireInterventionStateSucessImpl
   @override
   int get hashCode => Object.hash(runtimeType, response);
 
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$ArmoireInterventionStateSucessImplCopyWith<
@@ -528,10 +515,7 @@ abstract class _ArmoireInterventionStateSucess
       _$ArmoireInterventionStateSucessImpl;
 
   ResponseModel<Cabinet> get response;
-
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$ArmoireInterventionStateSucessImplCopyWith<
           _$ArmoireInterventionStateSucessImpl>
       get copyWith => throw _privateConstructorUsedError;
@@ -557,8 +541,6 @@ class __$$ArmoireInterventionStateStoreSucessImplCopyWithImpl<$Res>
       $Res Function(_$ArmoireInterventionStateStoreSucessImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -599,9 +581,7 @@ class _$ArmoireInterventionStateStoreSucessImpl
   @override
   int get hashCode => Object.hash(runtimeType, response);
 
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$ArmoireInterventionStateStoreSucessImplCopyWith<
@@ -700,10 +680,7 @@ abstract class _ArmoireInterventionStateStoreSucess
       _$ArmoireInterventionStateStoreSucessImpl;
 
   ResponseModel<CabinetResponseData> get response;
-
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$ArmoireInterventionStateStoreSucessImplCopyWith<
           _$ArmoireInterventionStateStoreSucessImpl>
       get copyWith => throw _privateConstructorUsedError;
@@ -729,8 +706,6 @@ class __$$ArmoireInterventionStateFailedImplCopyWithImpl<$Res>
       $Res Function(_$ArmoireInterventionStateFailedImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -770,9 +745,7 @@ class _$ArmoireInterventionStateFailedImpl
   @override
   int get hashCode => Object.hash(runtimeType, error);
 
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$ArmoireInterventionStateFailedImplCopyWith<
@@ -870,10 +843,7 @@ abstract class _ArmoireInterventionStateFailed
       _$ArmoireInterventionStateFailedImpl;
 
   String get error;
-
-  /// Create a copy of ArmoireInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$ArmoireInterventionStateFailedImplCopyWith<
           _$ArmoireInterventionStateFailedImpl>
       get copyWith => throw _privateConstructorUsedError;

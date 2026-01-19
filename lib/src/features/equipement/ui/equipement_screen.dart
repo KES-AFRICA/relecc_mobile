@@ -1,19 +1,17 @@
-import 'dart:io';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sopaki_app/generated/assets.dart';
 import 'package:sopaki_app/src/core/routing/app_router.dart';
 import 'package:sopaki_app/src/features/armoire/logic/model/cabinet.model.dart';
 import 'package:sopaki_app/src/features/compteur/logic/model/meter.model.dart';
-import 'package:sopaki_app/src/features/equipement/classes/reseau.dart';
+import 'package:sopaki_app/src/features/equipement/classes/reseau.dart'; // AJOUTÉ
 import 'package:sopaki_app/src/features/lampadaire/logic/model/street_light.model.dart';
 import 'package:sopaki_app/src/features/mission/logic/controller/bloc/mission_cubit.dart';
 import 'package:sopaki_app/src/features/mission/logic/model/mission.model.dart';
+import 'package:sopaki_app/src/features/network/logic/model/network_analysis_response.dart';
 import 'package:sopaki_app/src/shared/components/dialogs/api_error_dialog.dart';
 import 'package:sopaki_app/src/shared/components/dialogs/dialog_builder.dart';
 import 'package:sopaki_app/src/shared/extensions/context_extensions.dart';
@@ -32,14 +30,14 @@ class LocationFilters {
   final Set<String> selectedQuartiers;
   final Set<String> selectedCommunes;
   final DateTimeRange? dateRange;
-  final String? selectedType; // Ajoutez cette ligne
+  final String? selectedType;
 
   LocationFilters({
     Set<String>? selectedRues,
     Set<String>? selectedQuartiers,
     Set<String>? selectedCommunes,
     this.dateRange,
-    this.selectedType, // Ajoutez cette ligne
+    this.selectedType,
   })  : selectedRues = selectedRues ?? {},
         selectedQuartiers = selectedQuartiers ?? {},
         selectedCommunes = selectedCommunes ?? {};
@@ -49,14 +47,14 @@ class LocationFilters {
     Set<String>? selectedQuartiers,
     Set<String>? selectedCommunes,
     DateTimeRange? dateRange,
-    String? selectedType, // Ajoutez cette ligne
+    String? selectedType,
   }) {
     return LocationFilters(
       selectedRues: selectedRues ?? this.selectedRues,
       selectedQuartiers: selectedQuartiers ?? this.selectedQuartiers,
       selectedCommunes: selectedCommunes ?? this.selectedCommunes,
       dateRange: dateRange ?? this.dateRange,
-      selectedType: selectedType ?? this.selectedType, // Ajoutez cette ligne
+      selectedType: selectedType ?? this.selectedType,
     );
   }
 
@@ -65,45 +63,6 @@ class LocationFilters {
       selectedQuartiers.isNotEmpty ||
       selectedCommunes.isNotEmpty ||
       dateRange != null;
-
-  bool matchesEquipment(dynamic equipment) {
-    final street = equipment.street;
-    if (street == null && hasActiveFilters) return false;
-
-    bool matchesRue = selectedRues.isEmpty ||
-        (street?.name != null && selectedRues.contains(street?.name));
-
-    bool matchesQuartier = selectedQuartiers.isEmpty;
-    if (!matchesQuartier && street != null) {
-      if (street is Map) {
-        matchesQuartier = (street['district'] != null &&
-                selectedQuartiers.contains(street['district'])) ||
-            (street['quartier'] != null &&
-                selectedQuartiers.contains(street['quartier']));
-      } else {
-        try {
-          matchesQuartier = (street.district != null &&
-                  selectedQuartiers.contains(street.district)) ||
-              (street.quartier != null &&
-                  selectedQuartiers.contains(street.quartier));
-        } catch (e) {
-          matchesQuartier = false;
-        }
-      }
-    }
-
-    bool matchesCommune = selectedCommunes.isEmpty ||
-        (street?.municipality != null &&
-            selectedCommunes.contains(street?.municipality));
-
-    bool matchesDate = true;
-    if (dateRange != null && equipment.createdAt != null) {
-      matchesDate = equipment.createdAt!.isAfter(dateRange!.start) &&
-          equipment.createdAt!.isBefore(dateRange!.end);
-    }
-
-    return matchesRue && matchesQuartier && matchesCommune && matchesDate;
-  }
 }
 
 @RoutePage<void>()
@@ -131,23 +90,60 @@ class _EquipementScreenState extends State<EquipementScreen> {
   String _selectedType = "Tous";
   String _selectedNetworkType = "Tous Réseaux";
   bool _showNetworkView = false;
-  List<NetworkSummary> networks = [];
   LocationFilters _locationFilters = LocationFilters();
-  Map<String, String> _networkLabels = {};
-  int _networkCounter = 1;
+  bool _isLoadingEquipment = false;
   bool _isLoadingNetworks = false;
-   bool _isLoadingEquipment = false; 
+  
+  // Variables pour la pagination
+  int _equipmentCurrentPage = 1;
+  int _equipmentTotalPages = 1;
+  int _networkCurrentPage = 1;
+  int _networkTotalPages = 1;
+  
+  // Variables pour stocker les données
+  List<StoreStreetLightResponse> _streetLights = [];
+  List<CabinetResponse> _cabinets = [];
+  List<MeterResponse> _meters = [];
+  List<dynamic> _allEquipments = [];
+  NetworkAnalysisResponse? _networkAnalysisResponse;
 
-@override
-void initState() {
-  super.initState();
-  _isLoadingEquipment = true;
-  if (widget.mission.id != null) {
-    context.read<MissionCubit>().getAllEquipmentsMission(widget.mission.id!);
-  } else {
-    ApiErrorDialog.show(context: context, error: 'Mission ID is null');
+  @override
+  void initState() {
+    super.initState();
+    _loadEquipmentPage(1);
+    
+    // Initialiser avec une structure vide
+    _networkAnalysisResponse = NetworkAnalysisResponse(
+      success: true,
+      error: false,
+      message: '',
+      data: NetworkAnalysisData(
+        networks: [],
+        statistics: NetworkStatistics(
+          totalNetworks: 0, 
+          totalStreetlights: 0, 
+          totalPowerW: 0, 
+          totalDistanceKm: 0, 
+          totalOnDay: 0, 
+          totalOnNight: 0, 
+          byType: {}, 
+          byMunicipality: [], 
+          creationStats: CreationStats(
+            newestNetworkDaysAgo: 0, 
+            oldestNetworkDaysAgo: 0, 
+            averageNetworkAgeDays: 0
+          )
+        ),
+        meta: NetworkMeta(
+          currentPage: 1,
+          lastPage: 1,
+          perPage: 10,
+          total: 0,
+          totalNetworks: 0,
+        ),
+      ),
+    );
   }
-}
 
   void _setSelectedType(String type) {
     setState(() {
@@ -161,34 +157,117 @@ void initState() {
     });
   }
 
-
-
-  String _getOrCreateNetworkLabel(String networkId) {
-    if (!_networkLabels.containsKey(networkId)) {
-      _networkLabels[networkId] = 'R${_networkCounter++}';
+  void _loadEquipmentPage(int page) {
+    setState(() {
+      _isLoadingEquipment = true;
+      _equipmentCurrentPage = page;
+    });
+    
+    if (widget.mission.id != null) {
+      context.read<MissionCubit>().getAllEquipmentsMission(
+        widget.mission.id!,
+        page: page,
+        perPage: 10,
+        equipmentType: _selectedType == "Armoires" ? "cabinets" : 
+                      _selectedType == "Compteurs" ? "meters" : 
+                      _selectedType == "Lampadaires" ? "streetlights" : null,
+      );
+    } else {
+      ApiErrorDialog.show(context: context, error: 'Mission ID is null');
     }
-    return _networkLabels[networkId]!;
   }
 
-  String? _getEquipmentNetworkLabel(dynamic equipment) {
-    for (final networkSummary in networks) {
-      for (final network in networkSummary.networks) {
-        bool belongsToNetwork = false;
+  void _loadNetworkPage(int page) {
+    setState(() {
+      _isLoadingNetworks = true;
+      _networkCurrentPage = page;
+    });
+    
+    String? networkType;
+    switch (_selectedNetworkType) {
+      case "Tous Réseaux":
+        networkType = null;
+        break;
+      case "complets":
+        networkType = 'with_cabinet_meter';
+        break;
+      case "sans compteur":
+        networkType = 'with_cabinet_only';
+        break;
+      case "sans armoire":
+        networkType = 'with_meter_only';
+        break;
+    }
+    
+    context.read<MissionCubit>().analyzeNetworks(
+      page: page,
+      perPage: 10,
+      type: networkType,
+      municipality: _locationFilters.selectedCommunes.isNotEmpty 
+        ? _locationFilters.selectedCommunes.first 
+        : null,
+    );
+  }
 
-        if (equipment is StoreStreetLightResponse) {
-          belongsToNetwork = network.streetLightIds.contains(equipment.id);
-        } else if (equipment is CabinetResponse) {
-          belongsToNetwork = network.cabinetId == equipment.id;
-        } else if (equipment is MeterResponse) {
-          belongsToNetwork = network.meterId == equipment.id;
-        }
+  void _toggleView() {
+    setState(() {
+      _showNetworkView = !_showNetworkView;
+      if (_showNetworkView) {
+        _loadNetworkPage(1);
+      }
+    });
+  }
 
-        if (belongsToNetwork) {
-          return _getOrCreateNetworkLabel(network.id);
-        }
+  Widget _buildLoadingIndicator() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _showNetworkView ? 'Chargement des réseaux...' : 'Chargement des équipements...',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showFilterModal() async {
+    final filterOptions = _extractFilterOptions(_cabinets, _meters, _streetLights);
+
+    final newFilters = await showModalBottomSheet<LocationFilters>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _FilterModal(
+        isNetworkView: _showNetworkView,
+        filterOptions: filterOptions,
+        currentFilters: _locationFilters,
+        allCabinets: _cabinets,
+        allMeters: _meters,
+        allStreetLights: _streetLights,
+        onTypeSelected: _showNetworkView ? _setSelectedNetworkType : _setSelectedType,
+      ),
+    );
+
+    if (newFilters != null) {
+      setState(() {
+        _locationFilters = newFilters;
+      });
+      
+      if (_showNetworkView) {
+        _loadNetworkPage(1);
+      } else {
+        _loadEquipmentPage(1);
       }
     }
-    return null;
   }
 
   Map<String, Set<String>> _extractFilterOptions(
@@ -206,8 +285,7 @@ void initState() {
           if (street['name'] != null) rues.add(street['name']);
           if (street['district'] != null) quartiers.add(street['district']);
           if (street['quartier'] != null) quartiers.add(street['quartier']);
-          if (street['municipality'] != null)
-            communes.add(street['municipality']);
+          if (street['municipality'] != null) communes.add(street['municipality']);
         } else {
           if (street.name != null) rues.add(street.name);
           try {
@@ -240,289 +318,6 @@ void initState() {
     };
   }
 
-Widget _buildLoadingIndicator() {
-  return Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          _showNetworkView ? 'Chargement des réseaux...' : 'Chargement des équipements...',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey.shade600,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-  Future<void> _showFilterModal() async {
-    final state = context.read<MissionCubit>().state;
-
-    state.whenOrNull(
-      successEquipment: (response) async {
-        final meterList = response.data?.meters ?? [];
-        final cabinetList = response.data?.cabinets ?? [];
-        final streetLightList = response.data?.streetlights ?? [];
-
-        final filterOptions =
-            _extractFilterOptions(cabinetList, meterList, streetLightList);
-
-        final newFilters = await showModalBottomSheet<LocationFilters>(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => _FilterModal(
-            isNetworkView: _showNetworkView,
-            filterOptions: filterOptions,
-            currentFilters: _locationFilters,
-            allCabinets: cabinetList,
-            allMeters: meterList,
-            allStreetLights: streetLightList,
-            onTypeSelected:
-                _showNetworkView ? _setSelectedNetworkType : _setSelectedType,
-          ),
-        );
-
-        if (newFilters != null) {
-          setState(() {
-            _locationFilters = newFilters;
-          });
-        }
-      },
-    );
-  }
-
-  List<NetworkSummary> _calculateNetworks(
-    List<CabinetResponse> cabinets,
-    List<MeterResponse> meters,
-    List<StoreStreetLightResponse> streetLights,
-  ) {
-    final filteredCabinets =
-        cabinets.where(_locationFilters.matchesEquipment).toList();
-    final filteredMeters =
-        meters.where(_locationFilters.matchesEquipment).toList();
-    final filteredStreetLights =
-        streetLights.where(_locationFilters.matchesEquipment).toList();
-
-    final completeNetworks = <IndividualNetwork>[];
-    final meterOnlyNetworks = <IndividualNetwork>[];
-    final cabinetOnlyNetworks = <IndividualNetwork>[];
-
-    // ✅ CORRECTION 1: Créer un map des relations armoire-compteur
-    final cabinetToMeterMap = <int, int>{};
-
-    // D'abord, identifier toutes les relations armoire-compteur existantes
-    for (final light in filteredStreetLights) {
-      if (light.cabinetId != null && light.meterId != null) {
-        cabinetToMeterMap[light.cabinetId!] = light.meterId!;
-      }
-    }
-
-    // ✅ CORRECTION 2: Regrouper TOUS les lampadaires par armoire d'abord
-    final cabinetGroups = <int, List<StoreStreetLightResponse>>{};
-    for (final light
-        in filteredStreetLights.where((l) => l.cabinetId != null)) {
-      cabinetGroups.putIfAbsent(light.cabinetId!, () => []).add(light);
-    }
-
-    // ✅ CORRECTION 3: Regrouper les lampadaires sans armoire par compteur
-    final meterOnlyGroups = <int, List<StoreStreetLightResponse>>{};
-    for (final light in filteredStreetLights
-        .where((l) => l.cabinetId == null && l.meterId != null)) {
-      meterOnlyGroups.putIfAbsent(light.meterId!, () => []).add(light);
-    }
-
-    // ✅ CORRECTION 4: Traiter les groupes d'armoires
-    cabinetGroups.forEach((cabinetId, lights) {
-      final cabinet = filteredCabinets.firstWhere((c) => c.id == cabinetId);
-
-      // Vérifier si cette armoire est liée à un compteur
-      final meterId = cabinetToMeterMap[cabinetId];
-
-      if (meterId != null) {
-        // ✅ Réseau complet : armoire + compteur + lampadaires
-        final meter = filteredMeters.firstWhere((m) => m.id == meterId);
-
-        completeNetworks.add(IndividualNetwork(
-          id: '${cabinetId}_${meterId}',
-          type: "complet",
-          cabinetId: cabinetId,
-          meterId: meterId,
-          streetLightCount: lights.length,
-          location: _getLocation(lights),
-          streetLightIds: lights.map((l) => l.id).whereType<int>().toList(),
-        ));
-      } else {
-        // ✅ Réseau armoire seule (pas de compteur associé)
-        cabinetOnlyNetworks.add(IndividualNetwork(
-          id: 'cabinet_$cabinetId',
-          type: "armoire sans compteur",
-          cabinetId: cabinetId,
-          streetLightCount: lights.length,
-          location: _getLocation(lights),
-          streetLightIds: lights.map((l) => l.id).whereType<int>().toList(),
-        ));
-      }
-    });
-
-    // ✅ CORRECTION 5: Traiter les compteurs seuls (sans armoire)
-    meterOnlyGroups.forEach((meterId, lights) {
-      final meter = filteredMeters.firstWhere((m) => m.id == meterId);
-
-      meterOnlyNetworks.add(IndividualNetwork(
-        id: 'meter_$meterId',
-        type: "compteur sans armoire",
-        meterId: meterId,
-        streetLightCount: lights.length,
-        location: _getLocation(lights),
-        streetLightIds: lights.map((l) => l.id).whereType<int>().toList(),
-      ));
-    });
-
-    // ✅ CORRECTION 6: Trier chaque type de réseau par date du dernier équipement
-    completeNetworks.sort((a, b) => _getLastEquipmentDate(
-            b, filteredCabinets, filteredMeters, filteredStreetLights)
-        .compareTo(_getLastEquipmentDate(
-            a, filteredCabinets, filteredMeters, filteredStreetLights)));
-
-    meterOnlyNetworks.sort((a, b) => _getLastEquipmentDate(
-            b, filteredCabinets, filteredMeters, filteredStreetLights)
-        .compareTo(_getLastEquipmentDate(
-            a, filteredCabinets, filteredMeters, filteredStreetLights)));
-
-    cabinetOnlyNetworks.sort((a, b) => _getLastEquipmentDate(
-            b, filteredCabinets, filteredMeters, filteredStreetLights)
-        .compareTo(_getLastEquipmentDate(
-            a, filteredCabinets, filteredMeters, filteredStreetLights)));
-
-    return [
-      NetworkSummary(
-        type: "complet",
-        count: completeNetworks.length,
-        cabinetCount: completeNetworks.length,
-        meterCount: completeNetworks.length,
-        streetLightCount:
-            completeNetworks.fold(0, (sum, n) => sum + n.streetLightCount),
-        networks: completeNetworks,
-      ),
-      NetworkSummary(
-        type: "compteur sans armoire",
-        count: meterOnlyNetworks.length,
-        cabinetCount: 0,
-        meterCount: meterOnlyNetworks.length,
-        streetLightCount:
-            meterOnlyNetworks.fold(0, (sum, n) => sum + n.streetLightCount),
-        networks: meterOnlyNetworks,
-      ),
-      NetworkSummary(
-        type: "armoire sans compteur",
-        count: cabinetOnlyNetworks.length,
-        cabinetCount: cabinetOnlyNetworks.length,
-        meterCount: 0,
-        streetLightCount:
-            cabinetOnlyNetworks.fold(0, (sum, n) => sum + n.streetLightCount),
-        networks: cabinetOnlyNetworks,
-      ),
-    ];
-  }
-
-Future<void> _calculateNetworksAsync() async {
-  setState(() {
-    _isLoadingNetworks = true;
-  });
-
-  final state = context.read<MissionCubit>().state;
-  await state.whenOrNull(
-    successEquipment: (response) async {
-      final meterList = response.data?.meters ?? [];
-      final cabinetList = response.data?.cabinets ?? [];
-      final streetLightList = response.data?.streetlights ?? [];
-
-      // ✅ Utiliser un délai pour montrer le loading (optionnel)
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      networks = _calculateNetworks(cabinetList, meterList, streetLightList);
-
-      if (mounted) {
-        setState(() {
-          _isLoadingNetworks = false;
-        });
-      }
-    },
-  );
-}
-
-void _toggleView() {
-  setState(() {
-    _showNetworkView = !_showNetworkView;
-    if (_showNetworkView) {
-      _isLoadingNetworks = true;
-      _calculateNetworksAsync();
-    }
-  });
-}
-
-  // ✅ NOUVELLE FONCTION: Obtenir la date du dernier équipement d'un réseau
-  DateTime _getLastEquipmentDate(
-    IndividualNetwork network,
-    List<CabinetResponse> cabinets,
-    List<MeterResponse> meters,
-    List<StoreStreetLightResponse> streetLights,
-  ) {
-    DateTime? lastDate;
-
-    // Vérifier l'armoire
-    if (network.cabinetId != null) {
-      final cabinet = cabinets.firstWhere((c) => c.id == network.cabinetId);
-      if (cabinet.createdAt != null) {
-        lastDate = cabinet.createdAt;
-      }
-    }
-
-    // Vérifier le compteur
-    if (network.meterId != null) {
-      final meter = meters.firstWhere((m) => m.id == network.meterId);
-      if (meter.createdAt != null &&
-          (lastDate == null || meter.createdAt!.isAfter(lastDate))) {
-        lastDate = meter.createdAt;
-      }
-    }
-
-    // Vérifier tous les lampadaires du réseau
-    final networkStreetLights = streetLights
-        .where((light) => network.streetLightIds.contains(light.id))
-        .toList();
-
-    for (final light in networkStreetLights) {
-      if (light.createdAt != null &&
-          (lastDate == null || light.createdAt!.isAfter(lastDate))) {
-        lastDate = light.createdAt;
-      }
-    }
-
-    return lastDate ?? DateTime(0); // Date par défaut si aucune date trouvée
-  }
-
-  String? _getLocation(List<StoreStreetLightResponse> lights) {
-    for (final light in lights) {
-      final street = light.street;
-      if (street != null) {
-        if (street is Map) {
-          if (street.name != null) return street.name;
-        } else {
-          if (street.name != null) return street.name;
-        }
-      }
-    }
-    return null;
-  }
-
   Widget _buildNoResultsWidget() {
     return Center(
       child: Column(
@@ -547,26 +342,17 @@ void _toggleView() {
                 _selectedType = "Tous";
                 _selectedNetworkType = "Tous Réseaux";
               });
+              if (_showNetworkView) {
+                _loadNetworkPage(1);
+              } else {
+                _loadEquipmentPage(1);
+              }
             },
             child: const Text('Réinitialiser les filtres'),
           ),
         ],
       ),
     );
-  }
-
-  Future<File?> getLocalCabinetImageFile(String name) async {
-    final appDir = await getTemporaryDirectory();
-    final folderPath = '${appDir.path}/cabinets/$name';
-
-    final directory = Directory(folderPath);
-    if (await directory.exists()) {
-      final files = directory.listSync().whereType<File>().toList();
-      if (files.isNotEmpty) {
-        return files.first;
-      }
-    }
-    return null;
   }
 
   Widget _buildEquipmentCard({
@@ -578,9 +364,10 @@ void _toggleView() {
     required DateTime? createdAt,
     String? networkLabel,
   }) {
-      final effectiveImageUrl = imageUrl.isNotEmpty 
+    final effectiveImageUrl = imageUrl.isNotEmpty 
       ? imageUrl 
       : 'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg';
+    
     return InkWell(
       onTap: onTap,
       splashColor: Colors.grey.withOpacity(0.3),
@@ -711,72 +498,37 @@ void _toggleView() {
     );
   }
 
-  Widget _buildIndividualNetworkCard(IndividualNetwork network,
-      {List<CabinetResponse>? cabinets,
-      List<MeterResponse>? meters,
-      List<StoreStreetLightResponse>? streetLights}) {
-    final cabinet = network.cabinetId != null && cabinets != null
-        ? cabinets.firstWhere((c) => c.id == network.cabinetId)
-        : null;
-
-    final meter = network.meterId != null && meters != null
-        ? meters.firstWhere((m) => m.id == network.meterId)
-        : null;
-
-    final networkStreetLights = streetLights
-        ?.where((light) => network.streetLightIds.contains(light.id))
-        .toList();
-
-    DateTime? lastUpdated;
-    dynamic lastEquipment;
-
-    if (cabinet?.createdAt != null) {
-      lastUpdated = cabinet!.createdAt;
-      lastEquipment = cabinet;
-    }
-
-    if (meter?.createdAt != null &&
-        (lastUpdated == null || meter!.createdAt!.isAfter(lastUpdated))) {
-      lastUpdated = meter?.createdAt;
-      lastEquipment = meter;
-    }
-
-    if (networkStreetLights != null) {
-      for (final light in networkStreetLights) {
-        if (light.createdAt != null &&
-            (lastUpdated == null || light.createdAt!.isAfter(lastUpdated))) {
-          lastUpdated = light.createdAt;
-          lastEquipment = light;
-        }
-      }
-    }
-
-    final networkLabel = _getOrCreateNetworkLabel(network.id);
-
-    return InkWell(
-      onTap: () {
-        final networkLabel = _getOrCreateNetworkLabel(network.id);
-        context.router.push(
-          NetworkDetailsRoute(
-            network: network,
-            cabinet: cabinet,
-            meter: meter,
-            streetLights: networkStreetLights ?? [],
-            mission: widget.mission,
-            networkLabel: networkLabel,
-          ),
-        );
-      },
-      child: Card(
-        elevation: 4,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: context.colorScheme.primary,
-            width: 2,
-          ),
+  Widget _buildNetworkCard(NetworkAnalysis network) {
+    // Utiliser des valeurs par défaut pour éviter les null
+    final typeLabel = network.typeLabel ?? network.displayType ?? 'Type inconnu';
+    final municipality = network.municipality ?? 'Commune inconnue';
+    final streetlightCount = network.streetlightCount ?? 0;
+    final distance = network.distance ?? 0.0;
+    final totalPower = network.totalPower ?? 0.0;
+    final onDayPercentage = network.onDayPercentage ?? 0.0;
+    final onNightPercentage = network.onNightPercentage ?? 0.0;
+    final createdAtFormatted = network.createdAtFormatted ?? 'Date inconnue';
+    final ageDays = network.ageDays ?? 0;
+    final cabinetName = network.cabinetName ?? '';
+    final meterName = network.meterName ?? '';
+    
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: context.colorScheme.primary,
+          width: 2,
         ),
+      ),
+      child: InkWell(
+        onTap: () {
+          context.read<MissionCubit>().getNetworkDetails(
+            type: network.type ?? 'unknown',
+            id: network.id ?? '0',
+          );
+        },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -790,14 +542,13 @@ void _toggleView() {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: context.colorScheme.primary,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            networkLabel,
+                            typeLabel,
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -807,7 +558,7 @@ void _toggleView() {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          network.type,
+                          municipality,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -818,121 +569,65 @@ void _toggleView() {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: context.colorScheme.primary.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${network.streetLightCount} lamp.',
+                      '$streetlightCount lamp.',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: context.colorScheme.primary,
                       ),
                     ),
                   ),
-                  // if (lastEquipment != null)
-                  //   ClipRRect(
-                  //     borderRadius: BorderRadius.circular(12),
-                  //     child: Image.asset(
-                  //       // lastEquipment is CabinetResponse
-                  //       //     ? Assets.armoire
-                  //       //     : lastEquipment is MeterResponse
-                  //       //         ? Assets.compteur
-                  //       //         : Assets.lampadaire,
-                  //       lastEquipment.photo,
-                  //       width: 40,
-                  //       height: 40,
-                  //       fit: BoxFit.cover,
-                  //     ),
-                  //   ),
-                  if (lastEquipment != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: lastEquipment.photo ?? 'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey.shade200,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: context.colorScheme.primary,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey.shade200,
-                        child: Icon(
-                          Icons.broken_image,
-                          color: Colors.grey.shade400,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
-              if (network.location != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.location_on,
-                        size: 16, color: context.colorScheme.primary),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        network.location!,
-                        style: TextStyle(color: Colors.grey.shade700),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              if (lastUpdated != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: context.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Dernier équipement: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(lastUpdated)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-              if (network.cabinetId != null || network.meterId != null) ...[
-                const SizedBox(height: 8),
+              const SizedBox(height: 8),
+              if (cabinetName.isNotEmpty || meterName.isNotEmpty)
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
                   children: [
-                    if (network.cabinetId != null)
+                    if (cabinetName.isNotEmpty)
                       _buildNetworkChip(
-                        icon:
-                            Image.asset(Assets.armoire, width: 20, height: 20),
-                        label: 'Armoire ${cabinet?.name}',
+                        icon: Image.asset(Assets.armoire, width: 20, height: 20),
+                        label: 'Armoire $cabinetName',
                         context: context,
                       ),
-                    if (network.meterId != null)
+                    if (meterName.isNotEmpty)
                       _buildNetworkChip(
-                        icon:
-                            Image.asset(Assets.compteur, width: 20, height: 20),
-                        label: 'Compteur ${meter?.name}',
+                        icon: Image.asset(Assets.compteur, width: 20, height: 20),
+                        label: 'Compteur $meterName',
                         context: context,
                       ),
                   ],
                 ),
-              ],
+              const SizedBox(height: 8),
+              Text(
+                'Distance: ${distance.toStringAsFixed(2)} km | Puissance: ${(totalPower / 1000).toStringAsFixed(2)} kW',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Allumé jour: ${onDayPercentage.toStringAsFixed(1)}% | Nuit: ${onNightPercentage.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Créé: $createdAtFormatted ($ageDays jours)',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade500,
+                ),
+              ),
             ],
           ),
         ),
@@ -965,75 +660,40 @@ void _toggleView() {
     );
   }
 
-// ✅ CORRECTION 7: Modifier _getFilteredNetworks pour respecter le tri
-  List<IndividualNetwork> _getFilteredNetworks(List<NetworkSummary> networks) {
-    List<IndividualNetwork> networksToShow = [];
+  Widget _buildEquipmentView() {
+    final filteredEquipments = _allEquipments.where((item) {
+      if (!_locationFilters.hasActiveFilters) return true;
+      
+      final equipment = item.item;
+      final street = equipment.street;
+      if (street == null) return false;
 
-    if (_selectedNetworkType == "Tous Réseaux") {
-      // Récupérer tous les réseaux et les trier par date globalement
-      networksToShow = networks.expand((n) => n.networks).toList();
+      bool matchesRue = _locationFilters.selectedRues.isEmpty ||
+          (street.name != null && _locationFilters.selectedRues.contains(street.name));
 
-      // ✅ Tri global par date du dernier équipement
-      final state = context.read<MissionCubit>().state;
-      state.whenOrNull(
-        successEquipment: (response) {
-          final meterList = response.data?.meters ?? [];
-          final cabinetList = response.data?.cabinets ?? [];
-          final streetLightList = response.data?.streetlights ?? [];
+      bool matchesQuartier = _locationFilters.selectedQuartiers.isEmpty;
+      try {
+        matchesQuartier = matchesQuartier || 
+            (street.district != null && _locationFilters.selectedQuartiers.contains(street.district)) ||
+            (street.quartier != null && _locationFilters.selectedQuartiers.contains(street.quartier));
+      } catch (e) {}
 
-          networksToShow.sort((a, b) =>
-              _getLastEquipmentDate(b, cabinetList, meterList, streetLightList)
-                  .compareTo(_getLastEquipmentDate(
-                      a, cabinetList, meterList, streetLightList)));
-        },
-      );
-    } else if (_selectedNetworkType == "complets") {
-      networksToShow = networks.firstWhere((n) => n.type == "complet").networks;
-    } else if (_selectedNetworkType == "sans compteur") {
-      networksToShow = networks
-          .firstWhere((n) => n.type == "armoire sans compteur")
-          .networks;
-    } else if (_selectedNetworkType == "sans armoire") {
-      networksToShow = networks
-          .firstWhere((n) => n.type == "compteur sans armoire")
-          .networks;
+      bool matchesCommune = _locationFilters.selectedCommunes.isEmpty ||
+          (street.municipality != null && _locationFilters.selectedCommunes.contains(street.municipality));
+
+      bool matchesDate = true;
+      if (_locationFilters.dateRange != null && equipment.createdAt != null) {
+        matchesDate = equipment.createdAt!.isAfter(_locationFilters.dateRange!.start) &&
+            equipment.createdAt!.isBefore(_locationFilters.dateRange!.end);
+      }
+
+      return matchesRue && matchesQuartier && matchesCommune && matchesDate;
+    }).toList();
+
+    if (filteredEquipments.isEmpty && _locationFilters.hasActiveFilters) {
+      return _buildNoResultsWidget();
     }
 
-    return networksToShow;
-  }
-
-  Widget _buildNetworkView(
-    List<IndividualNetwork> networks, {
-    required List<CabinetResponse> cabinets,
-    required List<MeterResponse> meters,
-    required List<StoreStreetLightResponse> streetLights,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 16),
-        itemCount: networks.length,
-        itemBuilder: (context, index) {
-          final network = networks[index];
-          return _buildIndividualNetworkCard(
-            network,
-            cabinets: cabinets,
-            meters: meters,
-            streetLights: streetLights,
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildEquipmentView({
-    required bool showCabinets,
-    required bool showMeters,
-    required bool showStreetLights,
-    required List<CabinetResponse> sortedCabinets,
-    required List<MeterResponse> sortedMeters,
-    required List<StoreStreetLightResponse> sortedStreetLights,
-  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         int crossAxisCount = constraints.maxWidth < 600
@@ -1042,327 +702,395 @@ void _toggleView() {
                 ? 3
                 : 4;
 
-        if (_selectedType == "Tous") {
-          final allEquipments = [
-            ...sortedCabinets.map((e) => _EquipmentItem(e, 'cabinet',
-                networkLabel: _getEquipmentNetworkLabel(e))),
-            ...sortedMeters.map((e) => _EquipmentItem(e, 'meter',
-                networkLabel: _getEquipmentNetworkLabel(e))),
-            ...sortedStreetLights.map((e) => _EquipmentItem(e, 'streetLight',
-                networkLabel: _getEquipmentNetworkLabel(e))),
-          ]..sort((a, b) =>
-              b.item.createdAt?.compareTo(a.item.createdAt ?? DateTime(0)) ??
-              0);
-
-          return GridView.builder(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.all(constraints.maxWidth < 600 ? 8.0 : 16.0),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 0.7,
-            ),
-            itemCount: allEquipments.length,
-            itemBuilder: (context, index) {
-              final item = allEquipments[index];
-              return _buildEquipmentCard(
-                title: '${item.item.name ?? item.type.capitalize()}',
-                location: item.item.street?.name ?? 'Localisation inconnue',
-                // imageUrl: item.type == 'cabinet'
-                //     ? Assets.armoire
-                //     : item.type == 'meter'
-                //         ? Assets.compteur
-                //         : Assets.lampadaire,
-                imageUrl: item.item.photo??'',
-                isAsset: false,
-                createdAt: item.item.createdAt,
-                networkLabel: item.networkLabel,
-                onTap: () => context.router.push(EquipmentDetailsRoute(
-                  cabinet: item.type == 'cabinet' ? item.item : null,
-                  meter: item.type == 'meter' ? item.item : null,
-                  streetLight: item.type == 'streetLight' ? item.item : null,
-                  mission: widget.mission,
-                )),
-              );
-            },
-          );
-        }
-
-        return GridView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.all(constraints.maxWidth < 600 ? 8.0 : 16.0),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 0.7,
-          ),
+        return Column(
           children: [
-            // if (showCabinets && sortedCabinets.isNotEmpty)
-            //   ...sortedCabinets.map(
-            //     (cabinet) => FutureBuilder<File?>(
-            //       future: getLocalCabinetImageFile(cabinet.name!),
-            //       builder: (context, snapshot) {
-            //         final localFile = snapshot.data;
-            //         final imagePath =
-            //             (localFile != null && localFile.existsSync())
-            //                 ? localFile.path
-            //                 : Assets.armoire;
-
-            //         final isAsset =
-            //             localFile == null || !localFile.existsSync();
-
-            //         return _buildEquipmentCard(
-            //           imageUrl: imagePath,
-            //           isAsset: isAsset,
-            //           title: '${cabinet.name ?? 'Armoire'}',
-            //           location: cabinet.street?.name ?? 'Localisation inconnue',
-            //           createdAt: cabinet.createdAt,
-            //           networkLabel: _getEquipmentNetworkLabel(cabinet),
-            //           onTap: () => context.router.push(
-            //             EquipmentDetailsRoute(
-            //               cabinet: cabinet,
-            //               mission: widget.mission,
-            //               networkLabel: _getEquipmentNetworkLabel(cabinet),
-            //             ),
-            //           ),
-            //         );
-            //       },
-            //     ),
-            //   ),
-            if (showCabinets && sortedCabinets.isNotEmpty)
-              ...sortedCabinets.map(
-                (cabinet) => _buildEquipmentCard(
-                  imageUrl: cabinet.photo ?? '', // Utilisez directement cabinet.photo
-                  title: '${cabinet.name ?? 'Armoire'}',
-                  location: cabinet.street?.name ?? 'Localisation inconnue',
-                  isAsset: false,
-                  createdAt: cabinet.createdAt,
-                  networkLabel: _getEquipmentNetworkLabel(cabinet),
-                  onTap: () => context.router.push(
-                    EquipmentDetailsRoute(
-                      cabinet: cabinet,
+            Expanded(
+              child: GridView.builder(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.all(constraints.maxWidth < 600 ? 8.0 : 16.0),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 0.7,
+                ),
+                itemCount: filteredEquipments.length,
+                itemBuilder: (context, index) {
+                  final item = filteredEquipments[index];
+                  final equipment = item.item;
+                  return _buildEquipmentCard(
+                    title: '${equipment.name ?? item.type.capitalize()}',
+                    location: equipment.street?.name ?? 'Localisation inconnue',
+                    imageUrl: equipment.photo ?? '',
+                    isAsset: false,
+                    createdAt: equipment.createdAt,
+                    onTap: () => context.router.push(EquipmentDetailsRoute(
+                      cabinet: item.type == 'cabinet' ? equipment : null,
+                      meter: item.type == 'meter' ? equipment : null,
+                      streetLight: item.type == 'streetLight' ? equipment : null,
                       mission: widget.mission,
-                      networkLabel: _getEquipmentNetworkLabel(cabinet),
-                    ),
-                  ),
-                ),
+                    )),
+                  );
+                },
               ),
-            if (showMeters && sortedMeters.isNotEmpty)
-              ...sortedMeters.map(
-                (meter) => _buildEquipmentCard(
-                  // imageUrl: Assets.compteur,
-                  imageUrl: meter.photo ?? '',
-                  isAsset: false,
-                  title: '${meter.name ?? 'Compteur'}',
-                  location: meter.street?.name ?? 'Localisation inconnue',
-                  createdAt: meter.createdAt,
-                  networkLabel: _getEquipmentNetworkLabel(meter),
-                  onTap: () => context.router.push(EquipmentDetailsRoute(
-                    meter: meter,
-                    mission: widget.mission,
-                    networkLabel: _getEquipmentNetworkLabel(meter),
-                  )),
-                ),
-              ),
-            if (showStreetLights && sortedStreetLights.isNotEmpty)
-              ...sortedStreetLights.map(
-                (streetLight) => _buildEquipmentCard(
-                  // imageUrl: Assets.lampadaire,
-                  imageUrl: streetLight.photo ??'',
-                  isAsset: false,
-                  title: '${streetLight.name ?? 'Lampadaire'}',
-                  location: streetLight.street?.name ?? 'Localisation inconnue',
-                  createdAt: streetLight.createdAt,
-                  networkLabel: _getEquipmentNetworkLabel(streetLight),
-                  onTap: () => context.router.push(EquipmentDetailsRoute(
-                    streetLight: streetLight,
-                    mission: widget.mission,
-                    networkLabel: _getEquipmentNetworkLabel(streetLight),
-                  )),
-                ),
-              ),
+            ),
+            _buildPaginationControls(
+              currentPage: _equipmentCurrentPage,
+              totalPages: _equipmentTotalPages,
+              isLoading: _isLoadingEquipment,
+              onPrevious: () => _loadEquipmentPage(_equipmentCurrentPage - 1),
+              onNext: () => _loadEquipmentPage(_equipmentCurrentPage + 1),
+            ),
           ],
         );
       },
     );
   }
 
-
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      iconTheme: const IconThemeData(color: Colors.white),
-      backgroundColor: context.colorScheme.primary,
-      elevation: 0,
-      title: Text(
-        _showNetworkView ? "Réseaux" : "Équipements",
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
+  Widget _buildNetworkView() {
+    if (_isLoadingNetworks) {
+      return _buildLoadingIndicator();
+    }
+    
+    // CORRECTION : Maintenant c'est _networkAnalysisResponse?.data?.networks
+    final networks = _networkAnalysisResponse?.data?.networks ?? [];
+    
+    print("=== AFFICHAGE RÉSEAUX ===");
+    print("Nombre de réseaux: ${networks.length}");
+    
+    if (networks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.wifi_off, size: 60, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              _locationFilters.hasActiveFilters || _selectedNetworkType != "Tous Réseaux"
+                  ? 'Aucun réseau ne correspond à vos filtres'
+                  : 'Aucun réseau disponible',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            if (_locationFilters.hasActiveFilters || _selectedNetworkType != "Tous Réseaux")
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _locationFilters = LocationFilters();
+                    _selectedNetworkType = "Tous Réseaux";
+                  });
+                  _loadNetworkPage(1);
+                },
+                child: const Text('Réinitialiser les filtres'),
+              ),
+          ],
         ),
-      ),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios),
-        onPressed: () => widget.source == SourceProvider.LampFormProvider
-            ? context.router.replaceAll([MissionRoute()])
-            : context.router.pop(),
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(_showNetworkView ? Icons.list : Icons.graphic_eq),
-          onPressed: _toggleView,
-          tooltip:
-              _showNetworkView ? "Voir les équipements" : "Voir les réseaux",
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 16),
+            itemCount: networks.length,
+            itemBuilder: (context, index) {
+              final network = networks[index];
+              return _buildNetworkCard(network);
+            },
+          ),
+        ),
+        _buildPaginationControls(
+          currentPage: _networkCurrentPage,
+          totalPages: _networkTotalPages,
+          isLoading: _isLoadingNetworks,
+          onPrevious: () => _loadNetworkPage(_networkCurrentPage - 1),
+          onNext: () => _loadNetworkPage(_networkCurrentPage + 1),
         ),
       ],
-    ),
-    floatingActionButton: FloatingActionButton(
-      onPressed: _showFilterModal,
-      backgroundColor: context.colorScheme.primary,
-      child: Stack(
+    );
+  }
+
+  Widget _buildPaginationControls({
+    required int currentPage,
+    required int totalPages,
+    required bool isLoading,
+    required VoidCallback onPrevious,
+    required VoidCallback onNext,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade300)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.filter_list, color: Colors.white),
-          if (_locationFilters.hasActiveFilters)
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Center(
-                  child: Text(
-                    '!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            onPressed: currentPage > 1 && !isLoading ? onPrevious : null,
+            color: currentPage > 1 && !isLoading 
+              ? Theme.of(context).primaryColor 
+              : Colors.grey,
+          ),
+          Text(
+            'Page $currentPage sur $totalPages',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_ios),
+            onPressed: currentPage < totalPages && !isLoading ? onNext : null,
+            color: currentPage < totalPages && !isLoading
+              ? Theme.of(context).primaryColor
+              : Colors.grey,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: context.colorScheme.primary,
+        elevation: 0,
+        title: Text(
+          _showNetworkView ? "Réseaux" : "Équipements",
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => widget.source == SourceProvider.LampFormProvider
+              ? context.router.replaceAll([MissionRoute()])
+              : context.router.pop(),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(_showNetworkView ? Icons.list : Icons.graphic_eq),
+            onPressed: _toggleView,
+            tooltip: _showNetworkView ? "Voir les équipements" : "Voir les réseaux",
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showFilterModal,
+        backgroundColor: context.colorScheme.primary,
+        child: Stack(
+          children: [
+            const Icon(Icons.filter_list, color: Colors.white),
+            if (_locationFilters.hasActiveFilters)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
-    ),
-    body: BlocConsumer<MissionCubit, MissionState>(
-      listener: (context, state) {
-        state.whenOrNull(
-          loading: () {
-            // ✅ CORRECTION: Ne pas montrer le dialog de loading pour les réseaux
-            if (!_showNetworkView) {
-              LoadingDialog.show(context: context);
-            }
-          },
-          successEquipment: (_) {
-             setState(() {
-          _isLoadingEquipment = false;
-        });
-            LoadingDialog.hide(context: context);
-            // ✅ CORRECTION: Déclencher le calcul des réseaux de manière asynchrone
-            if (_showNetworkView && !_isLoadingNetworks) {
-              _calculateNetworksAsync();
-            }
-          },
-          failure: (error) {
-            LoadingDialog.hide(context: context);
-            setState(() {
-              _isLoadingEquipment = false;
-              _isLoadingNetworks = false;
-            });
-            ApiErrorDialog.show(context: context, error: error);
-          },
-        );
-      },
-      builder: (context, state) {
-            // Afficher le loader pour les équipements
-    if (!_showNetworkView && _isLoadingEquipment) {
-      return _buildLoadingIndicator();
-    }
-        // ✅ CORRECTION: Vérifier l'état de loading des réseaux EN PREMIER
-        if (_showNetworkView && _isLoadingNetworks) {
-          return _buildLoadingIndicator();
-        }
-
-        final meterList = state.whenOrNull(
-                successEquipment: (response) => response.data?.meters) ??
-            [];
-        final cabinetList = state.whenOrNull(
-                successEquipment: (response) => response.data?.cabinets) ??
-            [];
-        final streetLightList = state.whenOrNull(
-                successEquipment: (response) =>
-                    response.data?.streetlights) ??
-            [];
-
-        final filteredCabinets =
-            cabinetList.where(_locationFilters.matchesEquipment).toList();
-        final filteredMeters =
-            meterList.where(_locationFilters.matchesEquipment).toList();
-        final filteredStreetLights =
-            streetLightList.where(_locationFilters.matchesEquipment).toList();
-
-        final totalCount = filteredCabinets.length +
-            filteredMeters.length +
-            filteredStreetLights.length;
-
-        final sortedCabinets = [...filteredCabinets]..sort((a, b) =>
-            b.createdAt?.compareTo(a.createdAt ?? DateTime(0)) ?? 0);
-        final sortedMeters = [...filteredMeters]..sort((a, b) =>
-            b.createdAt?.compareTo(a.createdAt ?? DateTime(0)) ?? 0);
-        final sortedStreetLights = [...filteredStreetLights]..sort((a, b) =>
-            b.createdAt?.compareTo(a.createdAt ?? DateTime(0)) ?? 0);
-
-        if (_showNetworkView) {
-          final networksToShow = _getFilteredNetworks(networks);
-
-          if (networksToShow.isEmpty && _locationFilters.hasActiveFilters) {
-            return _buildNoResultsWidget();
+      body: BlocConsumer<MissionCubit, MissionState>(
+        listener: (context, state) {
+          state.whenOrNull(
+            // AJOUTÉ: Cas pour les détails du réseau
+successNetworkDetails: (response) {
+  final data = response.data;
+  final networkInfo = data?['network_info'];
+  
+  // Créer l'objet IndividualNetwork
+  final individualNetwork = IndividualNetwork(
+    id: networkInfo['id'].toString(),
+    name: networkInfo['type_label'] ?? 'Réseau',
+    type: networkInfo['type'] ?? 'unknown',
+    municipality: networkInfo['municipality'] ?? 'Inconnue',
+    streetlightCount: networkInfo['streetlight_count'] ?? 0,
+    distance: (networkInfo['distance_km'] ?? 0).toDouble(),
+    totalPower: (networkInfo['total_power_w'] ?? 0).toDouble(),
+    createdAt: networkInfo['created_at_iso'] != null 
+      ? DateTime.tryParse(networkInfo['created_at_iso']) 
+      : null,
+    cabinetId: data?['cabinet']?['id'],
+    meterId: data?['meter']?['id'],
+    location: networkInfo['location'],
+    streetLightIds: (data?['streetlights'] as List<dynamic>?)
+        ?.map<int>((e) => e['id'] as int)
+        .where((id) => id > 0)
+        .toList() ?? [],
+  );
+  
+  // Convertir les données du cabinet si présentes
+  CabinetResponse? cabinet;
+  if (data?['cabinet'] != null) {
+    cabinet = CabinetResponse.fromJson(data?['cabinet']);
+  }
+  
+  // Convertir les données du compteur si présentes
+  MeterResponse? meter;
+  if (data?['meter'] != null) {
+    meter = MeterResponse.fromJson(data?['meter']);
+  }
+  
+  // CORRECTION : Convertir les lampadaires avec les bool en int
+  final streetLights = (data?['streetlights'] as List)
+    .map((e) {
+      // Convertir bool en int pour is_on_day et is_on_night
+      final streetlightMap = Map<String, dynamic>.from(e);
+      if (streetlightMap['is_on_day'] is bool) {
+        streetlightMap['is_on_day'] = (streetlightMap['is_on_day'] as bool) ? 1 : 0;
+      }
+      if (streetlightMap['is_on_night'] is bool) {
+        streetlightMap['is_on_night'] = (streetlightMap['is_on_night'] as bool) ? 1 : 0;
+      }
+      
+      // Convertir les lamps aussi si nécessaire
+      if (streetlightMap['lamps'] != null) {
+        final lamps = (streetlightMap['lamps'] as List).map((lamp) {
+          final lampMap = Map<String, dynamic>.from(lamp);
+          if (lampMap['is_on_day'] is bool) {
+            lampMap['is_on_day'] = (lampMap['is_on_day'] as bool) ? 1 : 0;
           }
-
-          return _buildNetworkView(
-            networksToShow,
-            cabinets: sortedCabinets,
-            meters: sortedMeters,
-            streetLights: sortedStreetLights,
-          );
-        } else {
-          final showCabinets =
-              _selectedType == "Armoires" || _selectedType == "Tous";
-          final showMeters =
-              _selectedType == "Compteurs" || _selectedType == "Tous";
-          final showStreetLights =
-              _selectedType == "Lampadaires" || _selectedType == "Tous";
-
-          final hasNoResults = (showCabinets && filteredCabinets.isEmpty) &&
-              (showMeters && filteredMeters.isEmpty) &&
-              (showStreetLights && filteredStreetLights.isEmpty);
-
-          if (hasNoResults && _locationFilters.hasActiveFilters) {
-            return _buildNoResultsWidget();
+          if (lampMap['is_on_night'] is bool) {
+            lampMap['is_on_night'] = (lampMap['is_on_night'] as bool) ? 1 : 0;
           }
-
-          return _buildEquipmentView(
-            showCabinets: showCabinets,
-            showMeters: showMeters,
-            showStreetLights: showStreetLights,
-            sortedCabinets: sortedCabinets,
-            sortedMeters: sortedMeters,
-            sortedStreetLights: sortedStreetLights,
-          );
-        }
-      },
+          return lampMap;
+        }).toList();
+        streetlightMap['lamps'] = lamps;
+      }
+      
+      return StoreStreetLightResponse.fromJson(streetlightMap);
+    })
+    .toList();
+  
+  // Naviguer vers la page détails
+  context.router.push(
+    NetworkDetailsRoute(
+      network: individualNetwork,
+      cabinet: cabinet,
+      meter: meter,
+      streetLights: streetLights,
+      mission: widget.mission,
+      networkLabel: networkInfo['label'] ?? 
+        (cabinet?.name != null && meter?.name != null 
+          ? '${cabinet!.name} - ${meter!.name}'
+          : cabinet?.name ?? meter?.name ?? 'Réseau'),
     ),
   );
+},
+            successEquipment: (response) {
+              setState(() {
+                _isLoadingEquipment = false;
+                
+                if (_selectedType == "Armoires") {
+                  _cabinets = response.data?.cabinets ?? [];
+                  _allEquipments = _cabinets.map((e) => _EquipmentItem(e, 'cabinet')).toList();
+                } else if (_selectedType == "Compteurs") {
+                  _meters = response.data?.meters ?? [];
+                  _allEquipments = _meters.map((e) => _EquipmentItem(e, 'meter')).toList();
+                } else if (_selectedType == "Lampadaires") {
+                  _streetLights = response.data?.streetlights ?? [];
+                  _allEquipments = _streetLights.map((e) => _EquipmentItem(e, 'streetLight')).toList();
+                } else {
+                  _cabinets = response.data?.cabinets ?? [];
+                  _meters = response.data?.meters ?? [];
+                  _streetLights = response.data?.streetlights ?? [];
+                  _allEquipments = [
+                    ..._cabinets.map((e) => _EquipmentItem(e, 'cabinet')),
+                    ..._meters.map((e) => _EquipmentItem(e, 'meter')),
+                    ..._streetLights.map((e) => _EquipmentItem(e, 'streetLight')),
+                  ]..sort((a, b) => 
+                      b.item.createdAt?.compareTo(a.item.createdAt ?? DateTime(0)) ?? 0);
+                }
+                
+                final meta = response.data?.meta;
+                if (meta != null && meta.lastPage != null) {
+                  _equipmentTotalPages = meta.lastPage!;
+                }
+              });
+            },
+            successNetworkAnalysis: (response) {
+              print("=== SUCCESS NETWORK ANALYSIS ===");
+              print("Response reçue: ${response != null}");
+              print("Response.data: ${response.data != null}");
+              
+              setState(() {
+                _isLoadingNetworks = false;
+                
+                // CORRECTION: response.data est directement NetworkAnalysisResponse
+                _networkAnalysisResponse = response.data;
+                
+                // Récupérer le nombre total de pages
+                if (response.data?.data?.meta != null) {
+                  _networkTotalPages = response.data!.data!.meta!.lastPage;
+                  print("Méta données récupérées:");
+                  print("- currentPage: ${response.data!.data!.meta!.currentPage}");
+                  print("- lastPage: ${response.data!.data!.meta!.lastPage}");
+                  print("- total networks: ${response.data!.data!.networks?.length ?? 0}");
+                } else {
+                  _networkTotalPages = 1;
+                  print("Pas de métadonnées dans la réponse");
+                }
+              });
+            },
+            failure: (error) {
+              setState(() {
+                _isLoadingEquipment = false;
+                _isLoadingNetworks = false;
+              });
+              ApiErrorDialog.show(context: context, error: error);
+            },
+          );
+        },
+        builder: (context, state) {
+          if (!_showNetworkView && _isLoadingEquipment) {
+            return _buildLoadingIndicator();
+          }
+          
+          if (_showNetworkView && _isLoadingNetworks) {
+            return _buildLoadingIndicator();
+          }
+
+          if (_showNetworkView) {
+            return _buildNetworkView();
+          } else {
+            return _buildEquipmentView();
+          }
+        },
+      ),
+    );
+  }
 }
-}
+
 class _FilterModal extends StatefulWidget {
   final bool isNetworkView;
   final Map<String, Set<String>> filterOptions;
@@ -1509,8 +1237,7 @@ class _FilterModalState extends State<_FilterModal> {
               selected: _selectedNetworkType == "Tous Réseaux",
               onSelected: (selected) {
                 setState(() {
-                  _selectedNetworkType =
-                      selected ? "Tous Réseaux" : _selectedNetworkType;
+                  _selectedNetworkType = selected ? "Tous Réseaux" : _selectedNetworkType;
                 });
                 widget.onTypeSelected?.call("Tous Réseaux");
               },
@@ -1520,8 +1247,7 @@ class _FilterModalState extends State<_FilterModal> {
               selected: _selectedNetworkType == "complets",
               onSelected: (selected) {
                 setState(() {
-                  _selectedNetworkType =
-                      selected ? "complets" : _selectedNetworkType;
+                  _selectedNetworkType = selected ? "complets" : _selectedNetworkType;
                 });
                 widget.onTypeSelected?.call("complets");
               },
@@ -1531,8 +1257,7 @@ class _FilterModalState extends State<_FilterModal> {
               selected: _selectedNetworkType == "sans compteur",
               onSelected: (selected) {
                 setState(() {
-                  _selectedNetworkType =
-                      selected ? "sans compteur" : _selectedNetworkType;
+                  _selectedNetworkType = selected ? "sans compteur" : _selectedNetworkType;
                 });
                 widget.onTypeSelected?.call("sans compteur");
               },
@@ -1542,8 +1267,7 @@ class _FilterModalState extends State<_FilterModal> {
               selected: _selectedNetworkType == "sans armoire",
               onSelected: (selected) {
                 setState(() {
-                  _selectedNetworkType =
-                      selected ? "sans armoire" : _selectedNetworkType;
+                  _selectedNetworkType = selected ? "sans armoire" : _selectedNetworkType;
                 });
                 widget.onTypeSelected?.call("sans armoire");
               },
@@ -1575,8 +1299,7 @@ class _FilterModalState extends State<_FilterModal> {
               selected: _selectedEquipmentType == "Tous",
               onSelected: (selected) {
                 setState(() {
-                  _selectedEquipmentType =
-                      selected ? "Tous" : _selectedEquipmentType;
+                  _selectedEquipmentType = selected ? "Tous" : _selectedEquipmentType;
                 });
                 widget.onTypeSelected?.call("Tous");
               },
@@ -1586,8 +1309,7 @@ class _FilterModalState extends State<_FilterModal> {
               selected: _selectedEquipmentType == "Armoires",
               onSelected: (selected) {
                 setState(() {
-                  _selectedEquipmentType =
-                      selected ? "Armoires" : _selectedEquipmentType;
+                  _selectedEquipmentType = selected ? "Armoires" : _selectedEquipmentType;
                 });
                 widget.onTypeSelected?.call("Armoires");
               },
@@ -1597,8 +1319,7 @@ class _FilterModalState extends State<_FilterModal> {
               selected: _selectedEquipmentType == "Compteurs",
               onSelected: (selected) {
                 setState(() {
-                  _selectedEquipmentType =
-                      selected ? "Compteurs" : _selectedEquipmentType;
+                  _selectedEquipmentType = selected ? "Compteurs" : _selectedEquipmentType;
                 });
                 widget.onTypeSelected?.call("Compteurs");
               },
@@ -1608,8 +1329,7 @@ class _FilterModalState extends State<_FilterModal> {
               selected: _selectedEquipmentType == "Lampadaires",
               onSelected: (selected) {
                 setState(() {
-                  _selectedEquipmentType =
-                      selected ? "Lampadaires" : _selectedEquipmentType;
+                  _selectedEquipmentType = selected ? "Lampadaires" : _selectedEquipmentType;
                 });
                 widget.onTypeSelected?.call("Lampadaires");
               },
@@ -1771,8 +1491,7 @@ class _FilterModalState extends State<_FilterModal> {
                         _tempFilters.selectedRues,
                         (selected) {
                           setState(() {
-                            _tempFilters =
-                                _tempFilters.copyWith(selectedRues: selected);
+                            _tempFilters = _tempFilters.copyWith(selectedRues: selected);
                           });
                         },
                       ),
@@ -1786,8 +1505,7 @@ class _FilterModalState extends State<_FilterModal> {
                       _tempFilters.selectedQuartiers,
                       (selected) {
                         setState(() {
-                          _tempFilters = _tempFilters.copyWith(
-                              selectedQuartiers: selected);
+                          _tempFilters = _tempFilters.copyWith(selectedQuartiers: selected);
                         });
                       },
                     ),
@@ -1800,8 +1518,7 @@ class _FilterModalState extends State<_FilterModal> {
                       _tempFilters.selectedCommunes,
                       (selected) {
                         setState(() {
-                          _tempFilters =
-                              _tempFilters.copyWith(selectedCommunes: selected);
+                          _tempFilters = _tempFilters.copyWith(selectedCommunes: selected);
                         });
                       },
                     ),
@@ -1860,6 +1577,7 @@ class _FilterModalState extends State<_FilterModal> {
 
 extension StringExtension on String {
   String capitalize() {
+    if (isEmpty) return this;
     return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }

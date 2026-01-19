@@ -13,7 +13,6 @@ import 'package:sopaki_app/src/shared/responsive/screen.dart';
 @RoutePage<void>()
 class QrcodeScreen extends StatefulWidget {
   final MissionResponse? mission;
-  //final EquipmentType? equipmentType; 
   final String? source;
   final String? intention;
   final StoreStreetLightResponse? existingStreetLight;
@@ -24,8 +23,7 @@ class QrcodeScreen extends StatefulWidget {
     this.source, 
     this.intention, 
     this.existingStreetLight,
-    // this.equipmentType,
-    });
+  });
 
   @override
   State<QrcodeScreen> createState() => _QrcodeScreenState();
@@ -35,12 +33,11 @@ class _QrcodeScreenState extends State<QrcodeScreen> {
   String? scannedCode;
   bool isScanned = false;
   Timer? _timer;
+  final TextEditingController _manualCodeController = TextEditingController();
+  bool _showManualInput = false;
 
-  void _onDetect(BarcodeCapture capture) {
-    final String? code = capture.barcodes.first.rawValue;
-
-
-    if (code != null && !isScanned) {
+  void _handleCodeDetected(String code) {
+    if (code.isNotEmpty && !isScanned) {
       setState(() {
         scannedCode = code;
         isScanned = true;
@@ -48,22 +45,21 @@ class _QrcodeScreenState extends State<QrcodeScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Code QR détecté"),
+          content: Text("Code détecté"),
           backgroundColor: Colors.green,
         ),
       );
 
-
-    if (widget.intention == "update") {
-    context.router.replace(
-     LampadaireRoute(
-          qrCode: scannedCode,
-          streetLight: widget.existingStreetLight, // Données existantes
-          isEditMode: true,
-          source: SourceProvider.MaintenanceProvider,
-        ),
-    );
-  }
+      if (widget.intention == "update") {
+        context.router.replace(
+          LampadaireRoute(
+            qrCode: scannedCode,
+            streetLight: widget.existingStreetLight,
+            isEditMode: true,
+            source: SourceProvider.MaintenanceProvider,
+          ),
+        );
+      }
 
       _timer = Timer(const Duration(seconds: 0), () {
         if (!mounted) return;
@@ -75,17 +71,38 @@ class _QrcodeScreenState extends State<QrcodeScreen> {
         } else {
           context.router.replace(PhotoRoute(
             mission: widget.mission!, 
-            qrCode: scannedCode!, 
-            // equipmentType: widget.equipmentType!
-            ));
+            qrCode: scannedCode!,
+          ));
         }
       });
+    }
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    final String? code = capture.barcodes.first.rawValue;
+    if (code != null) {
+      _handleCodeDetected(code);
+    }
+  }
+
+  void _submitManualCode() {
+    final code = _manualCodeController.text.trim();
+    if (code.isNotEmpty) {
+      _handleCodeDetected(code);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Veuillez saisir un code"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _manualCodeController.dispose();
     super.dispose();
   }
 
@@ -105,6 +122,19 @@ class _QrcodeScreenState extends State<QrcodeScreen> {
           "Scan du Qr Code",
           style: TextStyle(color: Colors.white),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _showManualInput ? Icons.qr_code_scanner : Icons.keyboard,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              setState(() {
+                _showManualInput = !_showManualInput;
+              });
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -113,35 +143,96 @@ class _QrcodeScreenState extends State<QrcodeScreen> {
           children: [
             SizedBox(height: MediaQuery.of(context).size.height / 10),
 
-            // Texte d'instructions ou message de succès
-            const Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Text(
-                "Veuillez scanner le code QR",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-
-            SizedBox(height: hauteur(context, 20)),
-
-            // Zone de scan de QR code
-            SizedBox(
-              height: MediaQuery.of(context).size.height / 3,
-              width: MediaQuery.of(context).size.width * 0.8,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: MobileScanner(
-                  controller: MobileScannerController(
-                    facing: CameraFacing.back,
-                    detectionSpeed: DetectionSpeed.normal,
-                    formats: [BarcodeFormat.qrCode], // Limite aux QR codes
-                  ),
-                  onDetect: _onDetect, // Appelé lorsqu'un QR est détecté
-                  fit: BoxFit.cover,
+            if (_showManualInput) ...[
+              // Interface de saisie manuelle
+              const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Text(
+                  "Saisie manuelle du code",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-            ),
+
+              SizedBox(height: hauteur(context, 20)),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: TextField(
+                  controller: _manualCodeController,
+                  decoration: InputDecoration(
+                    labelText: 'Code QR',
+                    hintText: 'Entrez le code QR manuellement',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(Icons.qr_code),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => _manualCodeController.clear(),
+                    ),
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submitManualCode(),
+                ),
+              ),
+
+              SizedBox(height: hauteur(context, 30)),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: ElevatedButton(
+                  onPressed: _submitManualCode,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Valider',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              // Interface de scan QR code
+              const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Text(
+                  "Veuillez scanner le code QR",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+
+              SizedBox(height: hauteur(context, 20)),
+
+              // Zone de scan de QR code
+              SizedBox(
+                height: MediaQuery.of(context).size.height / 3,
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: MobileScanner(
+                    controller: MobileScannerController(
+                      facing: CameraFacing.back,
+                      detectionSpeed: DetectionSpeed.normal,
+                      formats: [BarcodeFormat.qrCode],
+                    ),
+                    onDetect: _onDetect,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+
+             
+            ],
 
             const Spacer(),
 
@@ -149,8 +240,13 @@ class _QrcodeScreenState extends State<QrcodeScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 24.0),
                 child: Text(
-                  "Redirection en cour...",
-                  style: TextStyle(color: context.colorScheme.primary),
+                  "Redirection en cours...",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: context.colorScheme.primary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
 

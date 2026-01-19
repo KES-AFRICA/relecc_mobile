@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
+import 'package:sopaki_app/generated/assets.dart';
 import 'package:sopaki_app/src/core/routing/app_router.dart';
 import 'package:sopaki_app/src/features/armoire/logic/model/cabinet.model.dart';
 import 'package:sopaki_app/src/features/compteur/logic/model/meter.model.dart';
@@ -315,17 +316,30 @@ Color _getLightColor(StoreStreetLightResponse light) {
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  // isLight
-                  //     ? Assets.lampadaire
-                  //     : equipment is MeterResponse
-                  //         ? Assets.compteur
-                  //         : Assets.armoire,
-                  equipment.photo??'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
-                  height: 200,
-                  width: 120,
-                  fit: BoxFit.cover,
-                ),
+                child: CachedNetworkImage(
+                      imageUrl: equipment.photo??'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
+                      height: 200,
+                      width: 120,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade200,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Image.asset(
+                        isLight
+                            ? Assets.lampadaire
+                            : equipment is MeterResponse
+                                ? Assets.compteur
+                                : Assets.armoire,
+                        height: 200,
+                        width: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
               ),
             ),
             const SizedBox(height: 16),
@@ -419,8 +433,6 @@ Color _getLightColor(StoreStreetLightResponse light) {
       children: [
         _buildDetailRow(
             Icons.location_on, cabinet.street?.name ?? 'Localisation inconnue'),
-        _buildDetailRow(
-            Icons.lightbulb_outline, 'Lampadaires: ${cabinet.lampCount ?? 0}'),
         if (cabinet.location != null)
           _buildDetailRow(Icons.gps_fixed, 'Position: ${cabinet.location}'),
       ],
@@ -569,12 +581,6 @@ Color _getLightColor(StoreStreetLightResponse light) {
                             ],
                           ),
                           const SizedBox(height: 4),
-                        ],
-                        if (isCabinet) ...[
-                          Text(
-                            'Lampadaires: ${equipment.lampCount ?? 0}',
-                            style: const TextStyle(fontSize: 13),
-                          ),
                         ],
                         if (isMeter) ...[
                           Text(

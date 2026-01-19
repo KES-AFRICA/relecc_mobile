@@ -94,9 +94,6 @@ class _$CompteurInterventionStateCopyWithImpl<$Res,
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
-
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -116,9 +113,6 @@ class __$$CompteurInterventionStateInitialImplCopyWithImpl<$Res>
       _$CompteurInterventionStateInitialImpl _value,
       $Res Function(_$CompteurInterventionStateInitialImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -249,9 +243,6 @@ class __$$CompteurInterventionStateLoadingImplCopyWithImpl<$Res>
       _$CompteurInterventionStateLoadingImpl _value,
       $Res Function(_$CompteurInterventionStateLoadingImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -385,8 +376,6 @@ class __$$CompteurInterventionStateSucessImplCopyWithImpl<$Res>
       $Res Function(_$CompteurInterventionStateSucessImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -427,9 +416,7 @@ class _$CompteurInterventionStateSucessImpl
   @override
   int get hashCode => Object.hash(runtimeType, response);
 
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$CompteurInterventionStateSucessImplCopyWith<
@@ -528,10 +515,7 @@ abstract class _CompteurInterventionStateSucess
       _$CompteurInterventionStateSucessImpl;
 
   ResponseModel<Meter> get response;
-
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$CompteurInterventionStateSucessImplCopyWith<
           _$CompteurInterventionStateSucessImpl>
       get copyWith => throw _privateConstructorUsedError;
@@ -557,8 +541,6 @@ class __$$CompteurInterventionStateStoreSucessImplCopyWithImpl<$Res>
       $Res Function(_$CompteurInterventionStateStoreSucessImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -599,9 +581,7 @@ class _$CompteurInterventionStateStoreSucessImpl
   @override
   int get hashCode => Object.hash(runtimeType, response);
 
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$CompteurInterventionStateStoreSucessImplCopyWith<
@@ -700,10 +680,7 @@ abstract class _CompteurInterventionStateStoreSucess
       _$CompteurInterventionStateStoreSucessImpl;
 
   ResponseModel<MeterResponseData> get response;
-
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$CompteurInterventionStateStoreSucessImplCopyWith<
           _$CompteurInterventionStateStoreSucessImpl>
       get copyWith => throw _privateConstructorUsedError;
@@ -729,8 +706,6 @@ class __$$CompteurInterventionStateFailedImplCopyWithImpl<$Res>
       $Res Function(_$CompteurInterventionStateFailedImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -770,9 +745,7 @@ class _$CompteurInterventionStateFailedImpl
   @override
   int get hashCode => Object.hash(runtimeType, error);
 
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$CompteurInterventionStateFailedImplCopyWith<
@@ -870,10 +843,7 @@ abstract class _CompteurInterventionStateFailed
       _$CompteurInterventionStateFailedImpl;
 
   String get error;
-
-  /// Create a copy of CompteurInterventionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$CompteurInterventionStateFailedImplCopyWith<
           _$CompteurInterventionStateFailedImpl>
       get copyWith => throw _privateConstructorUsedError;

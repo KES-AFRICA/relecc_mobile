@@ -24,7 +24,7 @@ class AppTheme {
           },
         ),
       ),
-      bottomAppBarTheme: BottomAppBarTheme(
+      bottomAppBarTheme: BottomAppBarThemeData(
         elevation: 3.0,
         height: Dimens.bottomNavBarHeight,
         color: colors.surface,
@@ -37,7 +37,7 @@ class AppTheme {
         selectedIconTheme: const IconThemeData(color: Colors.white),
         unselectedIconTheme: IconThemeData(color: colors.onSurface),
       ),
-      cardTheme: CardTheme(color: colors.surface),
+      cardTheme: CardThemeData(color: colors.surface),
       colorScheme: colors,
     );
   }

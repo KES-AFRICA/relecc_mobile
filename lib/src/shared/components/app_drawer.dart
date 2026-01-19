@@ -1,9 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sopaki_app/src/core/routing/app_router.dart';
-import 'package:sopaki_app/src/features/profil/logic/controller/bloc/user_cubit.dart';
 import 'package:sopaki_app/src/shared/locator.dart';
 import 'package:sopaki_app/src/shared/responsive/screen.dart';
 import 'package:sopaki_app/src/shared/services/preferences_service.dart';

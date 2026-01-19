@@ -1,288 +1,10 @@
-// import 'dart:async';
-// import 'package:dio/dio.dart';
-// import 'package:sopaki_app/src/features/equipement/logic/model/equipment.model.dart';
-// import 'package:sopaki_app/src/features/mission/logic/model/mission.model.dart';
-// import 'package:sopaki_app/src/service/env.dart';
-// import 'package:sopaki_app/src/service/exceptions.dart';
-// import 'package:sopaki_app/src/shared/locator.dart';
-// import 'package:sopaki_app/src/shared/model/response/response.model.dart';
-// import 'package:sopaki_app/src/shared/services/preferences_service.dart';
-// import 'package:logger/logger.dart';
-
-// // Configuration du logger
-// final _logger = Logger(
-//   printer: PrettyPrinter(),
-// );
-
-// class MissionRepository {
-//   static const int _requestTimeoutSeconds = 30;
-//   final Dio _dio;
-//   final PreferencesService _preferencesService = locator<PreferencesService>();
-
-//   // Cache en mémoire
-//   List<Mission>? _cachedMissions;
-//   Map<int, EquipmentResponse> _cachedEquipmentByMission = {};
-//   DateTime? _lastMissionFetchTime;
-//   DateTime? _lastEquipmentFetchTime;
-//   final Duration _cacheDuration = Duration(minutes: 5);
-
-//   MissionRepository({Dio? dio}) : _dio = dio ?? Dio() {
-//     _dio.options
-//       ..connectTimeout = Duration(seconds: _requestTimeoutSeconds)
-//       ..receiveTimeout = Duration(seconds: _requestTimeoutSeconds)
-//       ..sendTimeout = Duration(seconds: _requestTimeoutSeconds);
-//   }
-
-//   Future<String?> _getAuthToken() async {
-//     return _preferencesService.getLoginAccessToken();
-//   }
-
-//   Options _buildOptions(String? token) {
-//     return Options(
-//       headers: {
-//         "Accept": "application/json",
-//         "Content-Type": "application/json",
-//         if (token != null) "Authorization": "Bearer $token",
-//       },
-//     );
-//   }
-
-//   Future<ResponseModelWithList<Mission>> getAllMission() async {
-//     final token = await _getAuthToken();
-//     final url = Uri.encodeFull('$API_ENDPOINT/${getControllerName()}agent-missions');
-
-//     // Vérifier si le cache est encore valide
-//     final now = DateTime.now();
-//     if (_cachedMissions != null && 
-//         _lastMissionFetchTime != null && 
-//         now.difference(_lastMissionFetchTime!) < _cacheDuration) {
-//       _logger.i("Returning cached missions data");
-//       return ResponseModelWithList<Mission>(
-//         success: true,
-//         error: false,
-//         status: 200,
-//         message: "Data loaded from cache",
-//         data: _cachedMissions!,
-//       );
-//     }
-
-//     final stopwatch = Stopwatch()..start();
-
-//     try {
-//       _logger.i("Starting GET request to: $url");
-
-//       final response = await _dio.get(
-//         url,
-//         options: _buildOptions(token),
-//       ).timeout(Duration(seconds: _requestTimeoutSeconds));
-
-//       _logger.i("GET request completed in ${stopwatch.elapsedMilliseconds}ms");
-
-//       final result = ResponseModelWithList<Mission>.fromJson(
-//         response.data,
-//         (data) => Mission.fromJson(data as Map<String, dynamic>),
-//       );
-
-//       // Mettre à jour le cache
-//       _cachedMissions = result.data;
-//       _lastMissionFetchTime = DateTime.now();
-      
-//       // Sauvegarder aussi dans le stockage local
-//       await _preferencesService.setMissionsCache(response.data.toString());
-//       await _preferencesService.setMissionsCacheTime(_lastMissionFetchTime!.toIso8601String());
-
-//       return result;
-//     } on TimeoutException catch (_) {
-//       _logger.f("Request timeout after ${_requestTimeoutSeconds}s");
-      
-//       // Essayer de retourner le cache si disponible
-//       if (_cachedMissions != null) {
-//         _logger.w("Returning cached data due to timeout");
-//         return ResponseModelWithList<Mission>(
-//           success: true,
-//           error: false,
-//           status: 200,
-//           message: "Using cached data due to timeout",
-//           data: _cachedMissions!,
-//         );
-//       }
-//       throw TimeoutException("Request took too long");
-//     } on DioException catch (e) {
-//       _logger.f("Dio error: ${e.message}");
-      
-//       // Essayer de retourner le cache si disponible
-//       if (_cachedMissions != null) {
-//         _logger.w("Returning cached data due to API error");
-//         return ResponseModelWithList<Mission>(
-//           success: true,
-//           error: false,
-//           status: 200,
-//           message: "Using cached data due to API error: ${e.message}",
-//           data: _cachedMissions!,
-//         );
-//       }
-//       throw handleDioError(e);
-//     } catch (e, stacktrace) {
-//       _logger.f("Unexpected error: $e\nStacktrace: $stacktrace");
-      
-//       if (_cachedMissions != null) {
-//         _logger.w("Returning cached data due to unexpected error");
-//         return ResponseModelWithList<Mission>(
-//           success: true,
-//           error: false,
-//           status: 200,
-//           message: "Using cached data due to error: $e",
-//           data: _cachedMissions!,
-//         );
-//       }
-//       throw BadRequestException(
-//         message: "Unexpected error occurred: $e",
-//       );
-//     } finally {
-//       stopwatch.stop();
-//     }
-//   }
-
-//   Future<ResponseModel<EquipmentResponse>> getAllEquipmentOfMission(int missionId) async {
-//     final token = await _getAuthToken();
-//     final url = Uri.encodeFull('$API_ENDPOINT/${getControllerName()}missions-equipments');
-
-//     // Vérifier le cache
-//     final now = DateTime.now();
-//     if (_cachedEquipmentByMission.containsKey(missionId) ){
-//       final lastFetch = _lastEquipmentFetchTime;
-//       if (lastFetch != null && now.difference(lastFetch) < _cacheDuration) {
-//         _logger.i("Returning cached equipment data for mission $missionId");
-//         return ResponseModel<EquipmentResponse>(
-//           success: true,
-//           error: false,
-//           status: 200,
-//           message: "Data loaded from cache",
-//           data: _cachedEquipmentByMission[missionId]!,
-//         );
-//       }
-//     }
-
-//     final stopwatch = Stopwatch()..start();
-
-//     try {
-//       _logger.i("Starting POST request to: $url with mission_id: $missionId");
-
-//       final response = await _dio.post(
-//         url,
-//         data: {'mission_id': missionId},
-//         options: _buildOptions(token),
-//       ).timeout(Duration(seconds: _requestTimeoutSeconds));
-
-//       _logger.i("POST request completed in ${stopwatch.elapsedMilliseconds}ms");
-      
-//       final result = ResponseModel<EquipmentResponse>.fromJson(
-//         response.data,
-//         (data) => EquipmentResponse.fromJson(data as Map<String, dynamic>),
-//       );
-
-//       // Mettre à jour le cache
-//       _cachedEquipmentByMission[missionId] = result.data!;
-//       _lastEquipmentFetchTime = DateTime.now();
-      
-//       // Sauvegarder dans le stockage local
-//       await _preferencesService.setEquipmentCacheForMission(
-//         missionId.toString(), 
-//         response.data.toString()
-//       );
-//       await _preferencesService.setEquipmentCacheTime(
-//         missionId.toString(),
-//         _lastEquipmentFetchTime!.toIso8601String()
-//       );
-
-//       return result;
-//     } on TimeoutException catch (_) {
-//       _logger.f("Request timeout after ${_requestTimeoutSeconds}s");
-      
-//       // Retourner le cache si disponible
-//       if (_cachedEquipmentByMission.containsKey(missionId)) {
-//         _logger.w("Returning cached equipment data due to timeout");
-//         return ResponseModel<EquipmentResponse>(
-//           success: true,
-//           error: false,
-//           status: 200,
-//           message: "Using cached data due to timeout",
-//           data: _cachedEquipmentByMission[missionId]!,
-//         );
-//       }
-//       throw TimeoutException("Request took too long");
-//     } on DioException catch (e) {
-//       _logger.f("Dio error: ${e.message}\nResponse: ${e.response?.data}");
-      
-//       // Retourner le cache si disponible
-//       if (_cachedEquipmentByMission.containsKey(missionId)) {
-//         _logger.w("Returning cached equipment data due to API error");
-//         return ResponseModel<EquipmentResponse>(
-//           success: true,
-//           error: false,
-//           status: 200,
-//           message: "Using cached data due to API error: ${e.message}",
-//           data: _cachedEquipmentByMission[missionId]!,
-//         );
-//       }
-//       throw handleDioError(e);
-//     } catch (e, stacktrace) {
-//       _logger.f("Unexpected error: $e\nStacktrace: $stacktrace");
-      
-//       // Retourner le cache si disponible
-//       if (_cachedEquipmentByMission.containsKey(missionId)) {
-//         _logger.w("Returning cached equipment data due to unexpected error");
-//         return ResponseModel<EquipmentResponse>(
-//           success: true,
-//           error: false,
-//           status: 200,
-//           message: "Using cached data due to error: $e",
-//           data: _cachedEquipmentByMission[missionId]!,
-//         );
-//       }
-//       throw BadRequestException(
-//         message: "Unexpected error occurred: $e",
-//       );
-//     } finally {
-//       stopwatch.stop();
-//     }
-//   }
-
-//   // Méthode pour forcer le rafraîchissement des données
-//   Future<void> refreshCache() async {
-//     _cachedMissions = null;
-//     _cachedEquipmentByMission.clear();
-//     _lastMissionFetchTime = null;
-//     _lastEquipmentFetchTime = null;
-    
-//     // Nettoyer aussi le stockage local
-//     await _preferencesService.clearMissionsCache();
-//     await _preferencesService.clearEquipmentCache();
-//   }
-
-//   // Méthode pour notifier un changement d'équipement
-//   Future<void> notifyEquipmentChange(int missionId) async {
-//     // Invalider le cache pour cette mission
-//     _cachedEquipmentByMission.remove(missionId);
-//     await _preferencesService.clearEquipmentCacheForMission(missionId.toString());
-//   }
-
-//   // Méthode pour notifier un changement de mission
-//   Future<void> notifyMissionChange() async {
-//     // Invalider le cache des missions
-//     _cachedMissions = null;
-//     _lastMissionFetchTime = null;
-//     await _preferencesService.clearMissionsCache();
-//   }
-
-//   String getControllerName() => 'missions/';
-// }
-
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:sopaki_app/src/features/equipement/logic/model/equipement_maintenance.modal.dart';
 import 'package:sopaki_app/src/features/equipement/logic/model/equipment.model.dart';
 import 'package:sopaki_app/src/features/mission/logic/model/mission.model.dart';
+import 'package:sopaki_app/src/features/network/logic/model/network_analysis_response.dart';
+import 'package:sopaki_app/src/features/network/logic/model/network_filter_options_response.dart';
 import 'package:sopaki_app/src/service/env.dart';
 import 'package:sopaki_app/src/service/exceptions.dart';
 import 'package:sopaki_app/src/shared/locator.dart';
@@ -361,72 +83,85 @@ class MissionRepository {
     }
   }
 
-  Future<ResponseModel<EquipmentResponse>> getAllEquipmentOfMission(int missionId) async {
-    final token = await _getAuthToken();
-    final url = Uri.encodeFull('$API_ENDPOINT/${getControllerName()}missions-equipments');
+Future<ResponseModel<EquipmentResponse>> getAllEquipmentOfMission(
+  int missionId, {
+  int page = 1,
+  int perPage = 10,
+  String? equipmentType,
+}) async {
+  final token = await _getAuthToken();
+  final url = Uri.encodeFull('$API_ENDPOINT/${getControllerName()}missions-equipments');
 
-    final stopwatch = Stopwatch()..start();
+  final stopwatch = Stopwatch()..start();
 
-    try {
-      _logger.i("Starting POST request to: $url with mission_id: $missionId");
+  try {
+    _logger.i("Starting POST request to: $url with mission_id: $missionId, page: $page, per_page: $perPage");
 
-      final response = await _dio.post(
-        url,
-        data: {'mission_id': missionId},
-        options: _buildOptions(token),
-      ).timeout(Duration(seconds: _requestTimeoutSeconds));
+    final response = await _dio.post(
+      url,
+      data: {
+        'mission_id': missionId,
+        'page': page,
+        'per_page': perPage,
+        if (equipmentType != null) 'equipment_type': equipmentType,
+      },
+      options: _buildOptions(token),
+    ).timeout(Duration(seconds: _requestTimeoutSeconds));
 
-      _logger.i("POST request completed in ${stopwatch.elapsedMilliseconds}ms");
-      
-      // Ajout du console.log pour afficher les données brutes
-      print("----------------------------------------");
-      print("DONNÉES BRUTES DE L'API (getAllEquipmentOfMission):");
-      print("URL: $url");
-      print("Mission ID: $missionId");
-      print("Status Code: ${response.statusCode}");
-      print("Headers: ${response.headers}");
-      print("Données complètes:");
-      print(response.data);
-      print("----------------------------------------");
+    _logger.i("POST request completed in ${stopwatch.elapsedMilliseconds}ms");
+    
+    print("----------------------------------------");
+    print("DONNÉES BRUTES DE L'API (getAllEquipmentOfMission):");
+    print("URL: $url");
+    print("Mission ID: $missionId");
+    print("Page: $page");
+    print("Per Page: $perPage");
+    print("Type: $equipmentType");
+    print("Status Code: ${response.statusCode}");
+    print("Données complètes:");
+    print(response.data);
+    print("----------------------------------------");
 
-      return ResponseModel<EquipmentResponse>.fromJson(
-        response.data,
-            (data) => EquipmentResponse.fromJson(data as Map<String, dynamic>),
-      );
-    } on TimeoutException catch (_) {
-      _logger.f("Request timeout after ${_requestTimeoutSeconds}s");
-      throw TimeoutException("Request took too long");
-    } on DioException catch (e) {
-      // Ajout du log pour les erreurs Dio
-      print("----------------------------------------");
-      print("ERREUR DIO (getAllEquipmentOfMission):");
-      print("URL: $url");
-      print("Mission ID: $missionId");
-      print("Error: ${e.message}");
-      print("Response: ${e.response?.data}");
-      print("----------------------------------------");
-      
-      _logger.f("Dio error: ${e.message}\nResponse: ${e.response?.data}");
-      throw handleDioError(e);
-    } catch (e, stacktrace) {
-      // Ajout du log pour les autres erreurs
-      print("----------------------------------------");
-      print("ERREUR INATTENDUE (getAllEquipmentOfMission):");
-      print("URL: $url");
-      print("Mission ID: $missionId");
-      print("Error: $e");
-      print("Stacktrace: $stacktrace");
-      print("----------------------------------------");
-      
-      _logger.f("Unexpected error: $e\nStacktrace: $stacktrace");
-      throw BadRequestException(
-        message: "Unexpected error occurred: $e",
-      );
-    } finally {
-      stopwatch.stop();
-    }
+    return ResponseModel<EquipmentResponse>.fromJson(
+      response.data,
+      (data) => EquipmentResponse.fromJson(data as Map<String, dynamic>),
+    );
+  } on TimeoutException catch (_) {
+    _logger.f("Request timeout after ${_requestTimeoutSeconds}s");
+    throw TimeoutException("Request took too long");
+  } on DioException catch (e) {
+    print("----------------------------------------");
+    print("ERREUR DIO (getAllEquipmentOfMission):");
+    print("URL: $url");
+    print("Mission ID: $missionId");
+    print("Page: $page");
+    print("Per Page: $perPage");
+    print("Error: ${e.message}");
+    print("Response: ${e.response?.data}");
+    print("----------------------------------------");
+    
+    _logger.f("Dio error: ${e.message}\nResponse: ${e.response?.data}");
+    throw handleDioError(e);
+  } catch (e, stacktrace) {
+    print("----------------------------------------");
+    print("ERREUR INATTENDUE (getAllEquipmentOfMission):");
+    print("URL: $url");
+    print("Mission ID: $missionId");
+    print("Page: $page");
+    print("Per Page: $perPage");
+    print("Error: $e");
+    print("Stacktrace: $stacktrace");
+    print("----------------------------------------");
+    
+    _logger.f("Unexpected error: $e\nStacktrace: $stacktrace");
+    throw BadRequestException(
+      message: "Unexpected error occurred: $e",
+    );
+  } finally {
+    stopwatch.stop();
   }
-
+}
+  
   Future<ResponseModel<EquipmentMaintenanceResponse>> getAllEquipmentOfMissionMaintenance(int missionId) async {
     final token = await _getAuthToken();
     final url = Uri.encodeFull('$API_ENDPOINT/${getControllerName()}missionsMaintenanceEquipments');
@@ -455,6 +190,297 @@ class MissionRepository {
       _logger.f("Dio error: ${e.message}\nResponse: ${e.response?.data}");
       throw handleDioError(e);
     } catch (e, stacktrace) {
+      _logger.f("Unexpected error: $e\nStacktrace: $stacktrace");
+      throw BadRequestException(
+        message: "Unexpected error occurred: $e",
+      );
+    } finally {
+      stopwatch.stop();
+    }
+  }
+
+Future<ResponseModel<NetworkAnalysisData>> analyzeNetworks({
+  int page = 1,
+  int perPage = 10,
+  String? type,
+  String? municipality,
+}) async {
+  final token = await _getAuthToken();
+  final url = Uri.encodeFull('$API_ENDPOINT/network-analysis');
+
+  try {
+    final response = await _dio.get(
+      url,
+      queryParameters: {
+        'page': page,
+        'per_page': perPage,
+        if (type != null) 'type': type,
+        if (municipality != null) 'municipality': municipality,
+      },
+      options: _buildOptions(token),
+    ).timeout(Duration(seconds: _requestTimeoutSeconds));
+
+    print("----------------------------------------");
+    print("DONNÉES BRUTES DE L'API (analyzeNetworks):");
+    print("URL: $url");
+    print("Données complètes:");
+    print(response.data);
+    print("----------------------------------------");
+
+    // CORRECTION ICI : On extrait le "data" du ResponseModel
+    return ResponseModel<NetworkAnalysisData>.fromJson(
+      response.data,
+      (data) => NetworkAnalysisData.fromJson(data as Map<String, dynamic>),
+    );
+  } catch (e) {
+    print("Erreur API: $e");
+    rethrow;
+  }
+}
+
+  Future<ResponseModel<NetworkFilterOptionsResponse>> getNetworkFilterOptions() async {
+    final token = await _getAuthToken();
+    final url = Uri.encodeFull('$API_ENDPOINT/network-analysis/filter-options');
+
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      _logger.i("Starting GET request to: $url");
+
+      final response = await _dio.get(
+        url,
+        options: _buildOptions(token),
+      ).timeout(Duration(seconds: _requestTimeoutSeconds));
+
+      _logger.i("GET request completed in ${stopwatch.elapsedMilliseconds}ms");
+      
+      print("----------------------------------------");
+      print("DONNÉES BRUTES DE L'API (getNetworkFilterOptions):");
+      print("URL: $url");
+      print("Status Code: ${response.statusCode}");
+      print("Données complètes:");
+      print(response.data);
+      print("----------------------------------------");
+
+      return ResponseModel<NetworkFilterOptionsResponse>.fromJson(
+        response.data,
+        (data) => NetworkFilterOptionsResponse.fromJson(data as Map<String, dynamic>),
+      );
+    } on TimeoutException catch (_) {
+      _logger.f("Request timeout after ${_requestTimeoutSeconds}s");
+      throw TimeoutException("Request took too long");
+    } on DioException catch (e) {
+      print("----------------------------------------");
+      print("ERREUR DIO (getNetworkFilterOptions):");
+      print("URL: $url");
+      print("Error: ${e.message}");
+      print("Response: ${e.response?.data}");
+      print("----------------------------------------");
+      
+      _logger.f("Dio error: ${e.message}\nResponse: ${e.response?.data}");
+      throw handleDioError(e);
+    } catch (e, stacktrace) {
+      print("----------------------------------------");
+      print("ERREUR INATTENDUE (getNetworkFilterOptions):");
+      print("URL: $url");
+      print("Error: $e");
+      print("Stacktrace: $stacktrace");
+      print("----------------------------------------");
+      
+      _logger.f("Unexpected error: $e\nStacktrace: $stacktrace");
+      throw BadRequestException(
+        message: "Unexpected error occurred: $e",
+      );
+    } finally {
+      stopwatch.stop();
+    }
+  }
+
+  Future<ResponseModel<Map<String, dynamic>>> getNetworkDetails({
+    required String type,
+    required String id,
+  }) async {
+    final token = await _getAuthToken();
+    final url = Uri.encodeFull('$API_ENDPOINT/network-analysis/$type/$id');
+
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      _logger.i("Starting GET request to: $url");
+
+      final response = await _dio.get(
+        url,
+        options: _buildOptions(token),
+      ).timeout(Duration(seconds: _requestTimeoutSeconds));
+
+      _logger.i("GET request completed in ${stopwatch.elapsedMilliseconds}ms");
+      
+      print("----------------------------------------");
+      print("DONNÉES BRUTES DE L'API (getNetworkDetails):");
+      print("URL: $url");
+      print("Type: $type");
+      print("ID: $id");
+      print("Status Code: ${response.statusCode}");
+      print("Données complètes:");
+      print(response.data);
+      print("----------------------------------------");
+
+      return ResponseModel<Map<String, dynamic>>.fromJson(
+        response.data,
+        (data) => data as Map<String, dynamic>,
+      );
+    } on TimeoutException catch (_) {
+      _logger.f("Request timeout after ${_requestTimeoutSeconds}s");
+      throw TimeoutException("Request took too long");
+    } on DioException catch (e) {
+      print("----------------------------------------");
+      print("ERREUR DIO (getNetworkDetails):");
+      print("URL: $url");
+      print("Type: $type");
+      print("ID: $id");
+      print("Error: ${e.message}");
+      print("Response: ${e.response?.data}");
+      print("----------------------------------------");
+      
+      _logger.f("Dio error: ${e.message}\nResponse: ${e.response?.data}");
+      throw handleDioError(e);
+    } catch (e, stacktrace) {
+      print("----------------------------------------");
+      print("ERREUR INATTENDUE (getNetworkDetails):");
+      print("URL: $url");
+      print("Type: $type");
+      print("ID: $id");
+      print("Error: $e");
+      print("Stacktrace: $stacktrace");
+      print("----------------------------------------");
+      
+      _logger.f("Unexpected error: $e\nStacktrace: $stacktrace");
+      throw BadRequestException(
+        message: "Unexpected error occurred: $e",
+      );
+    } finally {
+      stopwatch.stop();
+    }
+  }
+
+  Future<ResponseModel<Map<String, dynamic>>> getNetworkQuickStats() async {
+    final token = await _getAuthToken();
+    // Note: Cette route n'existe pas encore dans votre API, vous devrez l'ajouter
+    final url = Uri.encodeFull('$API_ENDPOINT/network-analysis/quick-stats');
+
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      _logger.i("Starting GET request to: $url");
+
+      final response = await _dio.get(
+        url,
+        options: _buildOptions(token),
+      ).timeout(Duration(seconds: _requestTimeoutSeconds));
+
+      _logger.i("GET request completed in ${stopwatch.elapsedMilliseconds}ms");
+      
+      print("----------------------------------------");
+      print("DONNÉES BRUTES DE L'API (getNetworkQuickStats):");
+      print("URL: $url");
+      print("Status Code: ${response.statusCode}");
+      print("Données complètes:");
+      print(response.data);
+      print("----------------------------------------");
+
+      return ResponseModel<Map<String, dynamic>>.fromJson(
+        response.data,
+        (data) => data as Map<String, dynamic>,
+      );
+    } on TimeoutException catch (_) {
+      _logger.f("Request timeout after ${_requestTimeoutSeconds}s");
+      throw TimeoutException("Request took too long");
+    } on DioException catch (e) {
+      print("----------------------------------------");
+      print("ERREUR DIO (getNetworkQuickStats):");
+      print("URL: $url");
+      print("Error: ${e.message}");
+      print("Response: ${e.response?.data}");
+      print("----------------------------------------");
+      
+      _logger.f("Dio error: ${e.message}\nResponse: ${e.response?.data}");
+      throw handleDioError(e);
+    } catch (e, stacktrace) {
+      print("----------------------------------------");
+      print("ERREUR INATTENDUE (getNetworkQuickStats):");
+      print("URL: $url");
+      print("Error: $e");
+      print("Stacktrace: $stacktrace");
+      print("----------------------------------------");
+      
+      _logger.f("Unexpected error: $e\nStacktrace: $stacktrace");
+      throw BadRequestException(
+        message: "Unexpected error occurred: $e",
+      );
+    } finally {
+      stopwatch.stop();
+    }
+  }
+
+  Future<ResponseModel<Map<String, dynamic>>> exportNetworks({
+    String? type,
+    String? municipality,
+  }) async {
+    final token = await _getAuthToken();
+    // Note: Cette route n'existe pas encore dans votre API, vous devrez l'ajouter
+    final url = Uri.encodeFull('$API_ENDPOINT/network-analysis/export');
+
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      _logger.i("Starting GET request to: $url");
+
+      final response = await _dio.get(
+        url,
+        queryParameters: {
+          if (type != null) 'type': type,
+          if (municipality != null) 'municipality': municipality,
+        },
+        options: _buildOptions(token),
+      ).timeout(Duration(seconds: _requestTimeoutSeconds));
+
+      _logger.i("GET request completed in ${stopwatch.elapsedMilliseconds}ms");
+      
+      print("----------------------------------------");
+      print("DONNÉES BRUTES DE L'API (exportNetworks):");
+      print("URL: $url");
+      print("Type: $type");
+      print("Municipality: $municipality");
+      print("Status Code: ${response.statusCode}");
+      print("Données complètes:");
+      print(response.data);
+      print("----------------------------------------");
+
+      return ResponseModel<Map<String, dynamic>>.fromJson(
+        response.data,
+        (data) => data as Map<String, dynamic>,
+      );
+    } on TimeoutException catch (_) {
+      _logger.f("Request timeout after ${_requestTimeoutSeconds}s");
+      throw TimeoutException("Request took too long");
+    } on DioException catch (e) {
+      print("----------------------------------------");
+      print("ERREUR DIO (exportNetworks):");
+      print("URL: $url");
+      print("Error: ${e.message}");
+      print("Response: ${e.response?.data}");
+      print("----------------------------------------");
+      
+      _logger.f("Dio error: ${e.message}\nResponse: ${e.response?.data}");
+      throw handleDioError(e);
+    } catch (e, stacktrace) {
+      print("----------------------------------------");
+      print("ERREUR INATTENDUE (exportNetworks):");
+      print("URL: $url");
+      print("Error: $e");
+      print("Stacktrace: $stacktrace");
+      print("----------------------------------------");
+      
       _logger.f("Unexpected error: $e\nStacktrace: $stacktrace");
       throw BadRequestException(
         message: "Unexpected error occurred: $e",

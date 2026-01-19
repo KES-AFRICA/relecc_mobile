@@ -83,9 +83,6 @@ class _$UserStateCopyWithImpl<$Res, $Val extends UserState>
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
-
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -102,9 +99,6 @@ class __$$UserInitialImplCopyWithImpl<$Res>
   __$$UserInitialImplCopyWithImpl(
       _$UserInitialImpl _value, $Res Function(_$UserInitialImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -219,9 +213,6 @@ class __$$UseroadingImplCopyWithImpl<$Res>
   __$$UseroadingImplCopyWithImpl(
       _$UseroadingImpl _value, $Res Function(_$UseroadingImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -339,8 +330,6 @@ class __$$UserSucessImplCopyWithImpl<$Res>
       _$UserSucessImpl _value, $Res Function(_$UserSucessImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -380,9 +369,7 @@ class _$UserSucessImpl implements _UserSucess {
   @override
   int get hashCode => Object.hash(runtimeType, response);
 
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$UserSucessImplCopyWith<_$UserSucessImpl> get copyWith =>
@@ -468,10 +455,7 @@ abstract class _UserSucess implements UserState {
       _$UserSucessImpl;
 
   ResponseModel<UserProfil> get response;
-
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$UserSucessImplCopyWith<_$UserSucessImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -493,8 +477,6 @@ class __$$UserFailedImplCopyWithImpl<$Res>
       _$UserFailedImpl _value, $Res Function(_$UserFailedImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -533,9 +515,7 @@ class _$UserFailedImpl implements _UserFailed {
   @override
   int get hashCode => Object.hash(runtimeType, error);
 
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$UserFailedImplCopyWith<_$UserFailedImpl> get copyWith =>
@@ -620,10 +600,7 @@ abstract class _UserFailed implements UserState {
   factory _UserFailed({required final String error}) = _$UserFailedImpl;
 
   String get error;
-
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$UserFailedImplCopyWith<_$UserFailedImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

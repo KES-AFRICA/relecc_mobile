@@ -2,7 +2,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:sopaki_app/generated/assets.dart';
 import 'package:sopaki_app/src/core/routing/app_router.dart';
 import 'package:sopaki_app/src/features/lampadaire/logic/model/street_light.model.dart';
 import 'package:sopaki_app/src/features/mission/logic/model/mission.model.dart';
@@ -62,7 +61,7 @@ class StreetLightComponentCompletScreenState extends State<StreetLightComponentC
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: MediaQuery.of(context).size.height * 0.6,
+            expandedHeight: MediaQuery.of(context).size.height * 0.9,
             floating: false,
             pinned: true,
             leading: IconButton(

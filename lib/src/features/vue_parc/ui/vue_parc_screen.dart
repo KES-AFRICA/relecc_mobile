@@ -733,71 +733,72 @@ void _traceCabinetOnlyNetworks({
               ),
               const SizedBox(height: 16),
 
-              // Filtre par rue
-              Container(
-                constraints: BoxConstraints(
-                    maxWidth: 200), // Ajustez cette valeur selon vos besoins
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Rue:'),
-                    DropdownButton<String>(
-                      isExpanded: true, // Important pour gérer les textes longs
-                      value: _selectedStreet,
-                      hint: const Text('Toutes'),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedStreet = newValue;
-                        });
-                      },
-                      items: [
-                        const DropdownMenuItem<String>(
-                          value: null,
-                          child:
-                              Text('Toutes', overflow: TextOverflow.ellipsis),
-                        ),
-                        ..._streets.map((street) {
-                          return DropdownMenuItem<String>(
-                            value: street,
-                            child: Text(
-                              street,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          );
-                        }).toList(),
-                      ],
-                      underline:
-                          Container(), // Supprime la ligne de soulignement par défaut
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
+              // // Filtre par rue
+              // Container(
+              //   constraints: const BoxConstraints(
+              //       maxWidth: 200), // Ajustez cette valeur selon vos besoins
+              //   child: Column(
+              //     crossAxisAlignment: CrossAxisAlignment.start,
+              //     children: [
+              //       const Text('Rue:'),
+              //       DropdownButton<String>(
+              //         isExpanded: true, // Important pour gérer les textes longs
+              //         value: _selectedStreet,
+              //         hint: const Text('Toutes'),
+              //         onChanged: (String? newValue) {
+              //           setState(() {
+              //             _selectedStreet = newValue;
+              //           });
+              //         },
+              //         items: [
+              //           const DropdownMenuItem<String>(
+              //             value: null,
+              //             child:
+              //                 Text('Toutes', overflow: TextOverflow.ellipsis),
+              //           ),
+              //           ..._streets.map((street) {
+              //             return DropdownMenuItem<String>(
+              //               value: street,
+              //               child: Text(
+              //                 street,
+              //                 overflow: TextOverflow.ellipsis,
+              //                 maxLines: 1,
+              //               ),
+              //             );
+              //           }).toList(),
+              //         ],
+              //         underline:
+              //             Container(), // Supprime la ligne de soulignement par défaut
+              //       ),
+              //     ],
+              //   ),
+              // ),
+              // const SizedBox(height: 16),
 
-              // Filtre par commune
-              const Text('Commune:'),
-              DropdownButton<String>(
-                value: _selectedMunicipality,
-                hint: const Text('Toutes'),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedMunicipality = newValue;
-                  });
-                },
-                items: [
-                  const DropdownMenuItem<String>(
-                    value: null,
-                    child: Text('Toutes'),
-                  ),
-                  ..._municipalities.map((municipality) {
-                    return DropdownMenuItem<String>(
-                      value: municipality,
-                      child: Text(municipality),
-                    );
-                  }).toList(),
-                ],
-              ),
+              // // Filtre par commune
+              // const Text('Commune:'),
+              // DropdownButton<String>(
+              //   value: _selectedMunicipality,
+              //   hint: const Text('Toutes'),
+              //   onChanged: (String? newValue) {
+              //     setState(() {
+              //       _selectedMunicipality = newValue;
+              //     });
+              //   },
+              //   items: [
+              //     const DropdownMenuItem<String>(
+              //       value: null,
+              //       child: Text('Toutes'),
+              //     ),
+              //     ..._municipalities.map((municipality) {
+              //       return DropdownMenuItem<String>(
+              //         value: municipality,
+              //         child: Text(municipality),
+              //       );
+              //     }).toList(),
+              //   ],
+              // ),
+              
               const SizedBox(height: 24),
 
               ElevatedButton(
